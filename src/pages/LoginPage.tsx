@@ -1,0 +1,166 @@
+
+import { useState, useEffect, useCallback,} from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import { BookOpen, Mail, Lock, AlertCircle } from 'lucide-react';
+
+declare global {
+  interface Window {
+    google?: {
+      accounts: {
+        id: {
+          initialize: (config: any) => void;
+          renderButton: (element: HTMLElement, config: any) => void;
+        };
+      };
+    };
+  }
+}
+
+export default function LoginPage() {
+  const { login, googleLogin } = useAuth();
+  const navigate = useNavigate();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleGoogleCallback = useCallback(async (response: any) => {
+    setError('');
+    setLoading(true);
+    try {
+      await googleLogin(response.credential);
+      navigate('/');
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Google login gagal.');
+    } finally {
+      setLoading(false);
+    }
+  }, [googleLogin, navigate]);
+
+  useEffect(() => {
+    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+    if (!clientId) return;
+
+    const initGoogle = () => {
+      if (window.google?.accounts?.id) {
+        window.google.accounts.id.initialize({
+          client_id: clientId,
+          callback: handleGoogleCallback,
+        });
+
+        const btnContainer = document.getElementById('google-signin-btn');
+        if (btnContainer) {
+          window.google.accounts.id.renderButton(btnContainer, {
+            theme: 'outline',
+            size: 'large',
+            width: 380,
+            text: 'continue_with',
+            shape: 'rectangular',
+            logo_alignment: 'center',
+          });
+        }
+      }
+    };
+
+    // Google script might load after component mounts
+    if (window.google?.accounts?.id) {
+      initGoogle();
+    } else {
+      const timer = setInterval(() => {
+        if (window.google?.accounts?.id) {
+          initGoogle();
+          clearInterval(timer);
+        }
+      }, 200);
+      return () => clearInterval(timer);
+    }
+  }, [handleGoogleCallback]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+    try {
+      await login(email, password);
+      navigate('/');
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Login gagal. Periksa email dan password Anda.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="auth-container">
+      <div className="auth-card">
+        <div className="auth-brand">
+          <div className="auth-brand-icon">
+            <BookOpen size={28} />
+          </div>
+          <h1>Qweez</h1>
+          <p>Masuk ke Dashboard Guru</p>
+        </div>
+
+        {error && (
+          <div style={{
+            background: 'var(--red-50)', border: '1px solid var(--red-100)',
+            borderRadius: 'var(--radius-md)', padding: '12px 16px', marginBottom: 20,
+            display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.875rem', color: 'var(--red-500)'
+          }}>
+            <AlertCircle size={18} /> {error}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit}>
+          <div className="form-group">
+            <label className="form-label">Email</label>
+            <div style={{ position: 'relative' }}>
+              <Mail size={18} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)' }} />
+              <input
+                id="login-email"
+                type="email"
+                className="form-input"
+                style={{ paddingLeft: 40 }}
+                placeholder="guru@sekolah.sch.id"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+            </div>
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Password</label>
+            <div style={{ position: 'relative' }}>
+              <Lock size={18} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)' }} />
+              <input
+                id="login-password"
+                type="password"
+                className="form-input"
+                style={{ paddingLeft: 40 }}
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+            </div>
+          </div>
+
+          <button id="login-submit" type="submit" className="btn btn-primary btn-lg" style={{ width: '100%' }} disabled={loading}>
+            {loading ? <span className="spinner" /> : 'Masuk'}
+          </button>
+        </form>
+
+        <div className="auth-divider">atau</div>
+
+        {/* Google Sign-In Button — rendered by Google Identity Services */}
+        <div id="google-signin-btn" style={{ display: 'flex', justifyContent: 'center' }} />
+
+        <div className="auth-footer">
+          Belum punya akun? <Link to="/register">Daftar</Link>
+        </div>
+      </div>
+    </div>
+  );
+}

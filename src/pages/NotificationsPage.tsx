@@ -1,0 +1,107 @@
+import { useEffect, useState } from 'react';
+import api from '../api/client';
+import { Bell, Check, Clock, BookOpen, FileQuestion } from 'lucide-react';
+
+const typeIcons: Record<string, any> = {
+  join_approved: Check,
+  join_rejected: Clock,
+  quiz_new: FileQuestion,
+  quiz_open: BookOpen,
+  quiz_closed: Clock,
+  quiz_result: Check,
+  live_quiz: FileQuestion,
+};
+
+const typeColors: Record<string, string> = {
+  join_approved: 'var(--primary-100)',
+  quiz_new: 'var(--blue-100)',
+  quiz_open: 'var(--primary-100)',
+  quiz_closed: 'var(--red-100)',
+  quiz_result: 'var(--yellow-100)',
+  live_quiz: 'var(--orange-100)',
+};
+
+export default function NotificationsPage() {
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetch = async () => {
+      try {
+        const { data } = await api.get('/notifications');
+        setNotifications(data.notifications || []);
+      } catch {}
+      setLoading(false);
+    };
+    fetch();
+  }, []);
+
+  const markRead = async (id: string) => {
+    try {
+      await api.post(`/notifications/${id}/read`);
+      setNotifications((n) => n.map((x) => x._id === id ? { ...x, isRead: true } : x));
+    } catch {}
+  };
+
+  if (loading) return <div className="loading-page"><div className="spinner" /></div>;
+
+  return (
+    <div>
+      <div className="page-header">
+        <h1><Bell size={28} /> Notifikasi</h1>
+      </div>
+
+      {notifications.length === 0 ? (
+        <div className="card">
+          <div className="empty-state">
+            <div className="empty-state-icon"><Bell size={36} /></div>
+            <h3>Belum ada notifikasi</h3>
+            <p>Notifikasi akan muncul di sini.</p>
+          </div>
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {notifications.map((n) => {
+            const Icon = typeIcons[n.type] || Bell;
+            return (
+              <div
+                key={n._id}
+                className="card"
+                style={{
+                  opacity: n.isRead ? 0.7 : 1,
+                  cursor: n.isRead ? 'default' : 'pointer',
+                }}
+                onClick={() => !n.isRead && markRead(n._id)}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', padding: '14px 20px', gap: 14 }}>
+                  <div style={{
+                    width: 42, height: 42, borderRadius: 'var(--radius-md)',
+                    background: typeColors[n.type] || 'var(--gray-100)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    flexShrink: 0,
+                  }}>
+                    <Icon size={20} />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <p style={{ fontWeight: 600, fontSize: '0.9375rem' }}>
+                      {!n.isRead && <span style={{
+                        width: 8, height: 8, borderRadius: '50%',
+                        background: 'var(--primary-500)', display: 'inline-block',
+                        marginRight: 8,
+                      }} />}
+                      {n.title}
+                    </p>
+                    <p style={{ fontSize: '0.8125rem', color: 'var(--text-tertiary)' }}>{n.message}</p>
+                  </div>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', flexShrink: 0 }}>
+                    {new Date(n.createdAt).toLocaleDateString('id-ID')}
+                  </span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
