@@ -1,81 +1,16 @@
 
-import { useState, useEffect, useCallback,} from 'react';
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { BookOpen, Mail, Lock, AlertCircle } from 'lucide-react';
 
-declare global {
-  interface Window {
-    google?: {
-      accounts: {
-        id: {
-          initialize: (config: any) => void;
-          renderButton: (element: HTMLElement, config: any) => void;
-        };
-      };
-    };
-  }
-}
-
 export default function LoginPage() {
-  const { login, googleLogin } = useAuth();
+  const { login } = useAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-
-  const handleGoogleCallback = useCallback(async (response: any) => {
-    setError('');
-    setLoading(true);
-    try {
-      await googleLogin(response.credential);
-      navigate('/');
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Google login gagal.');
-    } finally {
-      setLoading(false);
-    }
-  }, [googleLogin, navigate]);
-
-  useEffect(() => {
-    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-    if (!clientId) return;
-
-    const initGoogle = () => {
-      if (window.google?.accounts?.id) {
-        window.google.accounts.id.initialize({
-          client_id: clientId,
-          callback: handleGoogleCallback,
-        });
-
-        const btnContainer = document.getElementById('google-signin-btn');
-        if (btnContainer) {
-          window.google.accounts.id.renderButton(btnContainer, {
-            theme: 'outline',
-            size: 'large',
-            width: 380,
-            text: 'continue_with',
-            shape: 'rectangular',
-            logo_alignment: 'center',
-          });
-        }
-      }
-    };
-
-    // Google script might load after component mounts
-    if (window.google?.accounts?.id) {
-      initGoogle();
-    } else {
-      const timer = setInterval(() => {
-        if (window.google?.accounts?.id) {
-          initGoogle();
-          clearInterval(timer);
-        }
-      }, 200);
-      return () => clearInterval(timer);
-    }
-  }, [handleGoogleCallback]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -151,11 +86,6 @@ export default function LoginPage() {
             {loading ? <span className="spinner" /> : 'Masuk'}
           </button>
         </form>
-
-        <div className="auth-divider">atau</div>
-
-        {/* Google Sign-In Button — rendered by Google Identity Services */}
-        <div id="google-signin-btn" style={{ display: 'flex', justifyContent: 'center' }} />
 
         <div className="auth-footer">
           Belum punya akun? <Link to="/register">Daftar</Link>
