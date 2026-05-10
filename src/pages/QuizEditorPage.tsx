@@ -204,6 +204,38 @@ export default function QuizEditorPage() {
             </button>
           </div>
         )}
+
+        {/* Backtrack toggle */}
+        <div style={{ padding: '12px 24px', borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div>
+            <p style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)' }}>Izinkan Kembali ke Soal Sebelumnya</p>
+            <p style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>Jika dimatikan, siswa hanya bisa maju ke soal berikutnya.</p>
+          </div>
+          <label className="toggle-switch" style={{ position: 'relative', display: 'inline-block', width: 44, height: 24, cursor: 'pointer' }}>
+            <input
+              type="checkbox"
+              checked={quiz.allowBacktrack !== false}
+              onChange={async (e) => {
+                try {
+                  await api.patch(`/quizzes/${quizId}`, { allowBacktrack: e.target.checked });
+                  fetchData();
+                } catch {}
+              }}
+              style={{ display: 'none' }}
+            />
+            <span style={{
+              position: 'absolute', inset: 0, borderRadius: 24,
+              background: quiz.allowBacktrack !== false ? 'var(--primary-500)' : 'var(--gray-300)',
+              transition: 'background 0.2s',
+            }}>
+              <span style={{
+                position: 'absolute', top: 2, left: quiz.allowBacktrack !== false ? 22 : 2,
+                width: 20, height: 20, borderRadius: '50%', background: '#fff',
+                transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+              }} />
+            </span>
+          </label>
+        </div>
       </div>
 
       {/* Questions */}
