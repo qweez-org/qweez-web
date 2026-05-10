@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../api/client';
 import { ArrowLeft, Radio, Play, X, Trophy, Users, Copy, Check, ChevronRight, Hash } from 'lucide-react';
@@ -104,7 +104,7 @@ export default function LiveQuizPage() {
       setParticipants(data.participants || []);
     };
 
-    const onParticipantLeft = (data: any) => {
+    const onParticipantLeft = (_data: any) => {
       // Just update count, participant list will be refreshed
     };
 
