@@ -31,7 +31,7 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       return;
     }
 
-    const token = localStorage.getItem('qweez_token');
+    const token = localStorage.getItem('qweez_access_token');
     const newSocket = io(import.meta.env.VITE_API_URL || 'http://localhost:5000', {
       auth: { token },
       transports: ['websocket'],

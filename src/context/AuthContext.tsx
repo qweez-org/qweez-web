@@ -12,7 +12,6 @@ interface User {
 
 interface AuthContextType {
   user: User | null;
-  token: string | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (name: string, email: string, password: string) => Promise<void>;
@@ -29,45 +28,54 @@ export const useAuth = () => {
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const savedToken = localStorage.getItem('qweez_token');
     const savedUser = localStorage.getItem('qweez_user');
-    if (savedToken && savedUser) {
-      setToken(savedToken);
-      setUser(JSON.parse(savedUser));
-    }
-    setLoading(false);
+    const bootstrap = async () => {
+      try {
+        // If we have a user cached, set it optimistically
+        if (savedUser) setUser(JSON.parse(savedUser));
+
+        // Ensure session is still valid. If access token is expired, api client will refresh via cookie.
+        const { data } = await api.get('/auth/me');
+        setUser(data.user);
+        localStorage.setItem('qweez_user', JSON.stringify(data.user));
+      } catch {
+        localStorage.removeItem('qweez_access_token');
+        localStorage.removeItem('qweez_user');
+        setUser(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+    bootstrap();
   }, []);
 
   const login = async (email: string, password: string) => {
     const { data } = await api.post('/auth/login', { email, password });
-    localStorage.setItem('qweez_token', data.token);
+    localStorage.setItem('qweez_access_token', data.accessToken);
     localStorage.setItem('qweez_user', JSON.stringify(data.user));
-    setToken(data.token);
     setUser(data.user);
   };
 
   const register = async (name: string, email: string, password: string) => {
     const { data } = await api.post('/auth/register', { name, email, password, role: 'teacher' });
-    localStorage.setItem('qweez_token', data.token);
+    localStorage.setItem('qweez_access_token', data.accessToken);
     localStorage.setItem('qweez_user', JSON.stringify(data.user));
-    setToken(data.token);
     setUser(data.user);
   };
 
 
   const logout = () => {
-    localStorage.removeItem('qweez_token');
+    api.post('/auth/logout', {}).catch(() => undefined);
+    localStorage.removeItem('qweez_access_token');
     localStorage.removeItem('qweez_user');
-    setToken(null);
     setUser(null);
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, register, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, register, logout }}>
       {children}
     </AuthContext.Provider>
   );
