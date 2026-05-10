@@ -218,17 +218,33 @@ export default function TopicDetailPage() {
                   <p style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
                     <CalendarClock size={16} /> Jadwal Kuis
                   </p>
-                  <div className="grid-2">
-                    <div className="form-group" style={{ marginBottom: 0 }}>
-                      <label className="form-label">Waktu Buka</label>
-                      <input type="datetime-local" className="form-input" value={scheduledOpen} onChange={(e) => setScheduledOpen(e.target.value)} />
-                    </div>
-                    <div className="form-group" style={{ marginBottom: 0 }}>
-                      <label className="form-label">Waktu Tutup</label>
-                      <input type="datetime-local" className="form-input" value={scheduledClose} onChange={(e) => setScheduledClose(e.target.value)} />
-                    </div>
+                  <div className="form-group" style={{ marginBottom: 12 }}>
+                    <label className="form-label">📅 Waktu Buka</label>
+                    <input
+                      type="datetime-local"
+                      className="form-input"
+                      value={scheduledOpen}
+                      onChange={(e) => setScheduledOpen(e.target.value)}
+                      min={new Date().toISOString().slice(0, 16)}
+                      style={{ width: '100%' }}
+                    />
+                    <p className="form-hint">Kuis akan otomatis terbuka pada waktu ini.</p>
                   </div>
-                  <p className="form-hint" style={{ marginTop: 8 }}>Kuis akan otomatis buka dan tutup sesuai jadwal.</p>
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label className="form-label">📅 Waktu Tutup</label>
+                    <input
+                      type="datetime-local"
+                      className="form-input"
+                      value={scheduledClose}
+                      onChange={(e) => setScheduledClose(e.target.value)}
+                      min={scheduledOpen || new Date().toISOString().slice(0, 16)}
+                      style={{ width: '100%' }}
+                    />
+                    <p className="form-hint">Kuis akan otomatis ditutup pada waktu ini.</p>
+                  </div>
+                  {scheduledOpen && scheduledClose && new Date(scheduledClose) <= new Date(scheduledOpen) && (
+                    <p className="form-error" style={{ marginTop: 8 }}>⚠️ Waktu tutup harus setelah waktu buka!</p>
+                  )}
                 </div>
               )}
             </div>

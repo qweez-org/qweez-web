@@ -162,16 +162,33 @@ export default function QuizEditorPage() {
             <p style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
               <CalendarClock size={16} /> Ubah Jadwal Kuis
             </p>
-            <div className="grid-2" style={{ marginBottom: 12 }}>
-              <div className="form-group" style={{ marginBottom: 0 }}>
-                <label className="form-label">Waktu Buka</label>
-                <input type="datetime-local" className="form-input" value={schedOpen} onChange={(e) => setSchedOpen(e.target.value)} />
-              </div>
-              <div className="form-group" style={{ marginBottom: 0 }}>
-                <label className="form-label">Waktu Tutup</label>
-                <input type="datetime-local" className="form-input" value={schedClose} onChange={(e) => setSchedClose(e.target.value)} />
-              </div>
+            <div className="form-group" style={{ marginBottom: 12 }}>
+              <label className="form-label">📅 Waktu Buka</label>
+              <input
+                type="datetime-local"
+                className="form-input"
+                value={schedOpen}
+                onChange={(e) => setSchedOpen(e.target.value)}
+                min={new Date().toISOString().slice(0, 16)}
+                style={{ width: '100%' }}
+              />
+              <p className="form-hint">Kuis akan otomatis terbuka pada waktu ini.</p>
             </div>
+            <div className="form-group" style={{ marginBottom: 8 }}>
+              <label className="form-label">📅 Waktu Tutup</label>
+              <input
+                type="datetime-local"
+                className="form-input"
+                value={schedClose}
+                onChange={(e) => setSchedClose(e.target.value)}
+                min={schedOpen || new Date().toISOString().slice(0, 16)}
+                style={{ width: '100%' }}
+              />
+              <p className="form-hint">Kuis akan otomatis ditutup pada waktu ini.</p>
+            </div>
+            {schedOpen && schedClose && new Date(schedClose) <= new Date(schedOpen) && (
+              <p className="form-error" style={{ marginBottom: 8 }}>⚠️ Waktu tutup harus setelah waktu buka!</p>
+            )}
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
               <button className="btn btn-ghost btn-sm" onClick={() => setEditSchedule(false)}>Batal</button>
               <button className="btn btn-primary btn-sm" onClick={handleSaveSchedule}>Simpan Jadwal</button>
