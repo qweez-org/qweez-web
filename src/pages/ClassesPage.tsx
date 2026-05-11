@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import type React from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api/client';
 import { Plus, Users, BookOpen, GraduationCap, X, Copy } from 'lucide-react';
@@ -9,16 +10,24 @@ export default function ClassesPage() {
   const navigate = useNavigate();
   const [classes, setClasses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [showCreate, setShowCreate] = useState(false);
   const [newName, setNewName] = useState('');
   const [newDesc, setNewDesc] = useState('');
   const [creating, setCreating] = useState(false);
 
+  const toErrorMessage = (e: any) => {
+    return e?.response?.data?.message || e?.message || 'Terjadi kesalahan';
+  };
+
   const fetchClasses = async () => {
     try {
+      setError(null);
       const { data } = await api.get('/classes');
       setClasses(data.classes || []);
-    } catch {} finally {
+    } catch (e: any) {
+      setError(toErrorMessage(e));
+    } finally {
       setLoading(false);
     }
   };
@@ -29,12 +38,15 @@ export default function ClassesPage() {
     if (!newName.trim()) return;
     setCreating(true);
     try {
+      setError(null);
       await api.post('/classes', { name: newName, description: newDesc });
       setShowCreate(false);
       setNewName('');
       setNewDesc('');
       fetchClasses();
-    } catch {} finally {
+    } catch (e: any) {
+      setError(toErrorMessage(e));
+    } finally {
       setCreating(false);
     }
   };
@@ -46,6 +58,15 @@ export default function ClassesPage() {
 
   return (
     <div>
+      {error && (
+        <div className="card" style={{ marginBottom: 12, border: '1px solid var(--red-200)', background: 'var(--red-50)' }}>
+          <div style={{ padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+            <p style={{ color: 'var(--red-700)', fontSize: '0.875rem', margin: 0 }}>{error}</p>
+            <button className="btn btn-ghost btn-sm" onClick={() => setError(null)}>Tutup</button>
+          </div>
+        </div>
+      )}
+
       <div className="page-header">
         <h1><GraduationCap size={28} /> Kelas Saya</h1>
         <button id="create-class-btn" className="btn btn-primary" onClick={() => setShowCreate(true)}>

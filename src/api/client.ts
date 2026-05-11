@@ -6,6 +6,12 @@ const api = axios.create({
   withCredentials: true,
 });
 
+const refreshApi = axios.create({
+  baseURL: '/api',
+  headers: { 'Content-Type': 'application/json', 'X-Refresh-Cookie': '1' },
+  withCredentials: true,
+});
+
 api.interceptors.request.use((config) => {
   const accessToken = localStorage.getItem('qweez_access_token');
   if (accessToken) config.headers.Authorization = `Bearer ${accessToken}`;
@@ -16,7 +22,7 @@ let refreshPromise: Promise<string | null> | null = null;
 
 async function refreshAccessToken(): Promise<string | null> {
   if (!refreshPromise) {
-    refreshPromise = api
+    refreshPromise = refreshApi
       .post('/auth/refresh', {})
       .then((res) => {
         const token = res.data?.accessToken as string | undefined;
@@ -36,7 +42,12 @@ api.interceptors.response.use(
   (res) => res,
   async (error) => {
     const original = error.config;
+    const url = (original?.url || '') as string;
     if (error.response?.status !== 401 || !original || original.__isRetry) {
+      return Promise.reject(error);
+    }
+
+    if (url.includes('/auth/refresh')) {
       return Promise.reject(error);
     }
 
@@ -45,7 +56,6 @@ api.interceptors.response.use(
     if (!newToken) {
       localStorage.removeItem('qweez_access_token');
       localStorage.removeItem('qweez_user');
-      window.location.href = '/login';
       return Promise.reject(error);
     }
 

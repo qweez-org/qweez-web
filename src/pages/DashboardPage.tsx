@@ -12,21 +12,30 @@ export default function DashboardPage() {
   const [recentAttempts, setRecentAttempts] = useState<any[]>([]);
   const [chartData, setChartData] = useState<any[]>([]);
 
+  const [error, setError] = useState<string | null>(null);
+
+  const toErrorMessage = (e: any) => {
+    return e?.response?.data?.message || e?.message || 'Terjadi kesalahan';
+  };
+
 
   useEffect(() => {
     const fetchData = async () => {
       try {
+        setError(null);
         const { data } = await api.get('/dashboard/stats');
         setStats(data.stats || { classCount: 0, quizCount: 0, studentCount: 0, pendingCount: 0 });
         setRecentAttempts(data.recentAttempts || []);
         setChartData(data.quizCountPerClass || []);
-      } catch {
+      } catch (e: any) {
         // Fallback: fetch classes directly
         try {
           const { data } = await api.get('/classes');
           const classes = data.classes || [];
           setStats((s) => ({ ...s, classCount: classes.length }));
-        } catch {}
+        } catch (err: any) {
+          setError(toErrorMessage(e) || toErrorMessage(err));
+        }
       }
 
     };
@@ -38,6 +47,15 @@ export default function DashboardPage() {
 
   return (
     <div>
+      {error && (
+        <div className="card" style={{ marginBottom: 12, border: '1px solid var(--red-200)', background: 'var(--red-50)' }}>
+          <div style={{ padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+            <p style={{ color: 'var(--red-700)', fontSize: '0.875rem', margin: 0 }}>{error}</p>
+            <button className="btn btn-ghost btn-sm" onClick={() => setError(null)}>Tutup</button>
+          </div>
+        </div>
+      )}
+
       {/* Welcome Banner */}
       <div style={{
         background: 'var(--primary-400)',

@@ -24,13 +24,21 @@ const typeColors: Record<string, string> = {
 export default function NotificationsPage() {
   const [notifications, setNotifications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const toErrorMessage = (e: any) => {
+    return e?.response?.data?.message || e?.message || 'Terjadi kesalahan';
+  };
 
   useEffect(() => {
     const fetch = async () => {
       try {
+        setError(null);
         const { data } = await api.get('/notifications');
         setNotifications(data.notifications || []);
-      } catch {}
+      } catch (e: any) {
+        setError(toErrorMessage(e));
+      }
       setLoading(false);
     };
     fetch();
@@ -38,15 +46,27 @@ export default function NotificationsPage() {
 
   const markRead = async (id: string) => {
     try {
+      setError(null);
       await api.post(`/notifications/${id}/read`);
       setNotifications((n) => n.map((x) => x._id === id ? { ...x, isRead: true } : x));
-    } catch {}
+    } catch (e: any) {
+      setError(toErrorMessage(e));
+    }
   };
 
   if (loading) return <div className="loading-page"><div className="spinner" /></div>;
 
   return (
     <div>
+      {error && (
+        <div className="card" style={{ marginBottom: 12, border: '1px solid var(--red-200)', background: 'var(--red-50)' }}>
+          <div style={{ padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+            <p style={{ color: 'var(--red-700)', fontSize: '0.875rem', margin: 0 }}>{error}</p>
+            <button className="btn btn-ghost btn-sm" onClick={() => setError(null)}>Tutup</button>
+          </div>
+        </div>
+      )}
+
       <div className="page-header">
         <h1><Bell size={28} /> Notifikasi</h1>
       </div>

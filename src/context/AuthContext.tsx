@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useRef } from 'react';
 import type { ReactNode } from 'react';
 import api from '../api/client';
 
@@ -29,8 +29,12 @@ export const useAuth = () => {
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const bootstrappedRef = useRef(false);
 
   useEffect(() => {
+    if (bootstrappedRef.current) return;
+    bootstrappedRef.current = true;
+
     const savedUser = localStorage.getItem('qweez_user');
     const bootstrap = async () => {
       try {
@@ -39,6 +43,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
         // Ensure session is still valid. If access token is expired, api client will refresh via cookie.
         const { data } = await api.get('/auth/me');
+        if (data.user?.role !== 'teacher') {
+          throw new Error('Teacher web only');
+        }
         setUser(data.user);
         localStorage.setItem('qweez_user', JSON.stringify(data.user));
       } catch {
@@ -53,7 +60,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const login = async (email: string, password: string) => {
-    const { data } = await api.post('/auth/login', { email, password });
+    const { data } = await api.post('/auth/login', { email, password, role: 'teacher' });
     localStorage.setItem('qweez_access_token', data.accessToken);
     localStorage.setItem('qweez_user', JSON.stringify(data.user));
     setUser(data.user);

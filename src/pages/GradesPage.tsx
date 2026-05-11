@@ -19,15 +19,23 @@ export default function GradesPage() {
   const [quizzes, setQuizzes] = useState<any[]>([]);
   const [members, setMembers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const toErrorMessage = (e: any) => {
+    return e?.response?.data?.message || e?.message || 'Terjadi kesalahan';
+  };
 
   useEffect(() => {
     const load = async () => {
       try {
+        setError(null);
         const { data } = await api.get(`/grades/classes/${classId}`);
         setGrades(data.grades || []);
         setQuizzes(data.quizzes || []);
         setMembers(data.members || []);
-      } catch {}
+      } catch (e: any) {
+        setError(toErrorMessage(e));
+      }
       setLoading(false);
     };
     load();
@@ -54,6 +62,7 @@ export default function GradesPage() {
 
   const handleExport = async () => {
     try {
+      setError(null);
       const response = await api.get(`/export/classes/${classId}/export/grades`, { responseType: 'blob' });
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const a = document.createElement('a');
@@ -61,7 +70,9 @@ export default function GradesPage() {
       a.download = `gradebook-${classId}.csv`;
       a.click();
       window.URL.revokeObjectURL(url);
-    } catch {}
+    } catch (e: any) {
+      setError(toErrorMessage(e));
+    }
   };
 
   if (loading) return <div className="loading-page"><div className="spinner" /></div>;
@@ -70,6 +81,15 @@ export default function GradesPage() {
 
   return (
     <div>
+      {error && (
+        <div className="card" style={{ marginBottom: 12, border: '1px solid var(--red-200)', background: 'var(--red-50)' }}>
+          <div style={{ padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+            <p style={{ color: 'var(--red-700)', fontSize: '0.875rem', margin: 0 }}>{error}</p>
+            <button className="btn btn-ghost btn-sm" onClick={() => setError(null)}>Tutup</button>
+          </div>
+        </div>
+      )}
+
       <button className="btn btn-ghost btn-sm" style={{ marginBottom: 16 }} onClick={() => navigate(`/classes/${classId}`)}>
         <ArrowLeft size={16} /> Kembali ke Kelas
       </button>

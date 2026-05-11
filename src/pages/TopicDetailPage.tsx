@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import type React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../api/client';
 import { ArrowLeft, Plus, FileQuestion, Clock, ChevronRight, Trash2, Radio, Download, CalendarClock } from 'lucide-react';
@@ -35,6 +36,7 @@ export default function TopicDetailPage() {
   const [topic, setTopic] = useState<any>(null);
   const [quizzes, setQuizzes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   // Create quiz modal
   const [showCreate, setShowCreate] = useState(false);
@@ -44,16 +46,23 @@ export default function TopicDetailPage() {
   const [scheduledOpen, setScheduledOpen] = useState('');
   const [scheduledClose, setScheduledClose] = useState('');
 
+  const toErrorMessage = (e: any) => {
+    return e?.response?.data?.message || e?.message || 'Terjadi kesalahan';
+  };
+
   useEffect(() => {
     const load = async () => {
       try {
+        setError(null);
         const [topicRes, quizRes] = await Promise.all([
           api.get(`/classes/topics/${classId}/${topicId}`),
           api.get(`/quizzes/topics/${topicId}`),
         ]);
         setTopic(topicRes.data.topic);
         setQuizzes(quizRes.data.quizzes || []);
-      } catch {}
+      } catch (e: any) {
+        setError(toErrorMessage(e));
+      }
       setLoading(false);
     };
     load();
@@ -62,6 +71,7 @@ export default function TopicDetailPage() {
   const handleCreateQuiz = async () => {
     if (!quizTitle.trim()) return;
     try {
+      setError(null);
       const body: any = {
         title: quizTitle,
         duration: quizDuration,
@@ -77,31 +87,48 @@ export default function TopicDetailPage() {
       setScheduledOpen('');
       setScheduledClose('');
       navigate(`/quizzes/${data.quiz._id}/edit`);
-    } catch {}
+    } catch (e: any) {
+      setError(toErrorMessage(e));
+    }
   };
 
   const handleDeleteQuiz = async (quizId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     if (!confirm('Hapus kuis ini?')) return;
     try {
+      setError(null);
       await api.delete(`/quizzes/${quizId}`);
       setQuizzes((q) => q.filter((x) => x._id !== quizId));
-    } catch {}
+    } catch (err: any) {
+      setError(toErrorMessage(err));
+    }
   };
 
   const handleToggleStatus = async (quiz: any, e: React.MouseEvent) => {
     e.stopPropagation();
     const newStatus = quiz.status === 'open' ? 'closed' : 'open';
     try {
+      setError(null);
       await api.patch(`/quizzes/${quiz._id}`, { status: newStatus });
       setQuizzes((q) => q.map((x) => x._id === quiz._id ? { ...x, status: newStatus } : x));
-    } catch {}
+    } catch (err: any) {
+      setError(toErrorMessage(err));
+    }
   };
 
   if (loading) return <div className="loading-page"><div className="spinner" /></div>;
 
   return (
     <div>
+      {error && (
+        <div className="card" style={{ marginBottom: 12, border: '1px solid var(--red-200)', background: 'var(--red-50)' }}>
+          <div style={{ padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+            <p style={{ color: 'var(--red-700)', fontSize: '0.875rem', margin: 0 }}>{error}</p>
+            <button className="btn btn-ghost btn-sm" onClick={() => setError(null)}>Tutup</button>
+          </div>
+        </div>
+      )}
+
       <button className="btn btn-ghost btn-sm" style={{ marginBottom: 16 }} onClick={() => navigate(`/classes/${classId}`)}>
         <ArrowLeft size={16} /> Kembali ke Kelas
       </button>
@@ -162,7 +189,7 @@ export default function TopicDetailPage() {
                       const url = window.URL.createObjectURL(new Blob([data]));
                       const a = document.createElement('a'); a.href = url; a.download = `quiz-results-${quiz._id}.csv`; a.click();
                       window.URL.revokeObjectURL(url);
-                    }).catch(() => {});
+                    }).catch((err) => { setError(toErrorMessage(err)); });
                   }}>
                     <Download size={14} />
                   </button>
