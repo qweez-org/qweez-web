@@ -50,6 +50,11 @@ export default function LiveQuizPage() {
   const [quiz, setQuiz] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const toErrorMessage = (e: any) => {
+    return e?.response?.data?.message || e?.message || 'Terjadi kesalahan';
+  };
 
   // Session state
   const [state, setState] = useState<LiveState>('setup');
@@ -72,8 +77,18 @@ export default function LiveQuizPage() {
   useEffect(() => {
     const load = async () => {
       try {
+        setError(null);
         const { data } = await api.get(`/quizzes/${quizId}`);
         setQuiz(data.quiz);
+
+        if (data.quiz.status === 'finished') {
+          const lbRes = await api.get(`/quizzes/${quizId}/live/leaderboard`).catch(() => null);
+          if (lbRes?.data?.leaderboard) {
+            setLeaderboard(lbRes.data.leaderboard);
+            setState('finished');
+          }
+        }
+
         // If quiz already has an active session, try to resume
         if (data.quiz.status === 'waiting' || data.quiz.status === 'in_progress') {
           const sessionRes = await api.get(`/quizzes/${quizId}/live/participants`).catch(() => null);
@@ -83,11 +98,25 @@ export default function LiveQuizPage() {
             setState(data.quiz.status === 'waiting' ? 'lobby' : 'active');
           }
         }
-      } catch {}
+      } catch (e: any) {
+        setError(toErrorMessage(e));
+      }
       setLoading(false);
     };
     load();
   }, [quizId]);
+
+  const handleRefreshParticipants = async () => {
+    if (!pin) return;
+    try {
+      setError(null);
+      const { data } = await api.get(`/quizzes/${quizId}/live/participants`);
+      if (data?.pin) setPin(data.pin);
+      setParticipants(data.participants || []);
+    } catch (e: any) {
+      setError(toErrorMessage(e));
+    }
+  };
 
   // ── Socket event listeners ────────────────────────────────────────────────
   useEffect(() => {
@@ -161,11 +190,12 @@ export default function LiveQuizPage() {
   const handleCreateSession = async () => {
     setActionLoading(true);
     try {
+      setError(null);
       const { data } = await api.post(`/quizzes/${quizId}/live/start`);
       setPin(data.pin);
       setState('lobby');
     } catch (e: any) {
-      alert(e.response?.data?.message || 'Failed to create session');
+      setError(toErrorMessage(e));
     }
     setActionLoading(false);
   };
@@ -188,12 +218,15 @@ export default function LiveQuizPage() {
   const handleCancel = async () => {
     if (!confirm('Batalkan live quiz?')) return;
     try {
+      setError(null);
       await api.post(`/quizzes/${quizId}/live/cancel`);
       setState('setup');
       setPin('');
       setParticipants([]);
       startedRef.current = false;
-    } catch {}
+    } catch (e: any) {
+      setError(toErrorMessage(e));
+    }
   };
 
   const handleCopyPin = () => {
@@ -215,6 +248,15 @@ export default function LiveQuizPage() {
 
   return (
     <div>
+      {error && (
+        <div className="card" style={{ marginBottom: 12, border: '1px solid var(--red-200)', background: 'var(--red-50)' }}>
+          <div style={{ padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+            <p style={{ color: 'var(--red-700)', fontSize: '0.875rem', margin: 0 }}>{error}</p>
+            <button className="btn btn-ghost btn-sm" onClick={() => setError(null)}>Tutup</button>
+          </div>
+        </div>
+      )}
+
       <button className="btn btn-ghost btn-sm" style={{ marginBottom: 16 }} onClick={() => navigate(-1)}>
         <ArrowLeft size={16} /> Kembali
       </button>
@@ -278,6 +320,9 @@ export default function LiveQuizPage() {
               </div>
               <button className="btn btn-secondary btn-sm" onClick={handleCopyPin}>
                 {pinCopied ? <><Check size={14} /> Tersalin!</> : <><Copy size={14} /> Salin PIN</>}
+              </button>
+              <button className="btn btn-ghost btn-sm" onClick={handleRefreshParticipants} style={{ marginLeft: 8 }}>
+                Refresh Peserta
               </button>
               <p style={{ fontSize: '0.8125rem', color: 'var(--text-tertiary)', marginTop: 12 }}>
                 Siswa masukkan PIN ini di aplikasi untuk bergabung

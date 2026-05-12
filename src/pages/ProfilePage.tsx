@@ -1,16 +1,31 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { User, Mail, Save, Check } from 'lucide-react';
+import api from '../api/client';
+import { User, Mail, Save, Check, AlertCircle } from 'lucide-react';
 
 export default function ProfilePage() {
   const { user, logout } = useAuth();
   const [name, setName] = useState(user?.name || '');
   const [saved, setSaved] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
 
   const handleSave = async () => {
-    // In production, would call API to update profile
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+    if (!name.trim()) return;
+    setSaving(true);
+    setError(null);
+    try {
+      const { data } = await api.patch('/users/me', { name: name.trim() });
+      if (data.user) {
+        localStorage.setItem('qweez_user', JSON.stringify(data.user));
+      }
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } catch (e: any) {
+      setError(e?.response?.data?.message || e?.message || 'Gagal menyimpan profil');
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -18,6 +33,15 @@ export default function ProfilePage() {
       <div className="page-header">
         <h1><User size={28} /> Profil</h1>
       </div>
+
+      {error && (
+        <div className="card" style={{ marginBottom: 12, border: '1px solid var(--red-200)', background: 'var(--red-50)' }}>
+          <div style={{ padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+            <p style={{ color: 'var(--red-700)', fontSize: '0.875rem', margin: 0 }}><AlertCircle size={16} style={{ verticalAlign: -3, marginRight: 6 }} />{error}</p>
+            <button className="btn btn-ghost btn-sm" onClick={() => setError(null)}>Tutup</button>
+          </div>
+        </div>
+      )}
 
       <div style={{ maxWidth: 600 }}>
         <div className="card" style={{ marginBottom: 24 }}>
@@ -69,8 +93,8 @@ export default function ProfilePage() {
             </div>
 
             <div style={{ display: 'flex', gap: 12 }}>
-              <button className="btn btn-primary" onClick={handleSave}>
-                {saved ? <><Check size={18} /> Tersimpan</> : <><Save size={18} /> Simpan</>}
+              <button className="btn btn-primary" onClick={handleSave} disabled={saving || !name.trim()}>
+                {saved ? <><Check size={18} /> Tersimpan</> : saving ? <span className="spinner" /> : <><Save size={18} /> Simpan</>}
               </button>
             </div>
           </div>

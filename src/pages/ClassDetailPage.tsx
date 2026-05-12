@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../api/client';
@@ -6,10 +6,12 @@ import {
   BookOpen, Users, Clock, Plus, X, Check, XCircle,
   ArrowLeft, ChevronRight, Trash2, Copy, ClipboardList, Download, Pencil, RefreshCw, UserPlus
 } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 export default function ClassDetailPage() {
   const { classId } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [classData, setClassData] = useState<any>(null);
   const [stats, setStats] = useState<any>({});
   const [activeTab, setActiveTab] = useState('topics');
@@ -33,6 +35,10 @@ export default function ClassDetailPage() {
   const [className, setClassName] = useState('');
   const [classDesc, setClassDesc] = useState('');
 
+  // Delete class confirm
+  const [showDeleteClass, setShowDeleteClass] = useState(false);
+  const [deleteClassTypedName, setDeleteClassTypedName] = useState('');
+
   // Co-teacher invite
   const [showInvite, setShowInvite] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
@@ -40,6 +46,24 @@ export default function ClassDetailPage() {
   const toErrorMessage = (e: any) => {
     return e?.response?.data?.message || e?.message || 'Terjadi kesalahan';
   };
+
+  const membersForDisplay = useMemo(() => {
+    const owner = classData?.owner;
+    if (!owner?._id) return members;
+
+    const ownerId = String(owner._id);
+    const alreadyIncluded = members.some((m: any) => String((m.userId as any)?._id) === ownerId);
+    if (alreadyIncluded) return members;
+
+    return [
+      {
+        _id: `owner:${ownerId}`,
+        userId: owner,
+        role: 'owner',
+      },
+      ...members,
+    ];
+  }, [classData, members]);
 
   const fetchClass = async () => {
     try {
@@ -192,14 +216,21 @@ export default function ClassDetailPage() {
   };
 
   const handleDeleteClass = async () => {
-    if (!confirm('Hapus kelas ini? Semua data terkait akan terhapus.')) return;
+    const expectedName = (classData?.name || '').trim();
+    if (deleteClassTypedName.trim() !== expectedName) {
+      setError('Nama kelas tidak cocok. Penghapusan dibatalkan.');
+      return;
+    }
     try {
       setError(null);
       await api.delete(`/classes/${classId}`);
       navigate('/classes');
     } catch (e: any) {
       setError(toErrorMessage(e));
+      return;
     }
+    setShowDeleteClass(false);
+    setDeleteClassTypedName('');
   };
 
   const openEditTopic = (topic: any, e: React.MouseEvent) => {
@@ -268,7 +299,14 @@ export default function ClassDetailPage() {
             <button className="btn btn-ghost btn-sm" onClick={handleRegenerateCode} title="Regenerate kode kelas">
               <RefreshCw size={14} /> Kode Baru
             </button>
-            <button className="btn btn-danger btn-sm" onClick={handleDeleteClass} title="Hapus kelas">
+            <button
+              className="btn btn-danger btn-sm"
+              onClick={() => {
+                setDeleteClassTypedName('');
+                setShowDeleteClass(true);
+              }}
+              title="Hapus kelas"
+            >
               <Trash2 size={14} /> Hapus
             </button>
             <button className="btn btn-secondary btn-sm" onClick={() => {
@@ -363,29 +401,8 @@ export default function ClassDetailPage() {
                     <ChevronRight size={20} color="var(--text-tertiary)" />
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
 
-          {/* Add Topic Modal */}
-          {showAddTopic && (
-            <div className="modal-overlay" onClick={() => setShowAddTopic(false)}>
-              <div className="modal" onClick={(e) => e.stopPropagation()}>
-                <div className="modal-header">
-                  <h2>Tambah Topik</h2>
-                  <button className="btn btn-ghost btn-icon" onClick={() => setShowAddTopic(false)}><X size={20} /></button>
-                </div>
-                <div className="modal-body">
-                  <div className="form-group">
-                    <label className="form-label">Nama Topik</label>
-                    <input className="form-input" placeholder="contoh: Matematika" value={topicName} onChange={(e) => setTopicName(e.target.value)} />
-                  </div>
-                </div>
-                <div className="modal-footer">
-                  <button className="btn btn-secondary" onClick={() => setShowAddTopic(false)}>Batal</button>
-                  <button className="btn btn-primary" onClick={handleAddTopic} disabled={!topicName.trim()}>Tambah</button>
-                </div>
-              </div>
+              ))}
             </div>
           )}
         </div>
@@ -400,7 +417,7 @@ export default function ClassDetailPage() {
             </button>
           </div>
           <div className="card">
-            {members.length === 0 ? (
+            {membersForDisplay.length === 0 ? (
               <div className="empty-state" style={{ padding: 40 }}>
                 <div className="empty-state-icon"><Users size={36} /></div>
                 <h3>Belum ada anggota</h3>
@@ -410,13 +427,19 @@ export default function ClassDetailPage() {
               <table className="data-table">
                 <thead><tr><th>Nama</th><th>Email</th><th>Peran</th><th></th></tr></thead>
                 <tbody>
-                  {members.map((m: any) => (
+                  {membersForDisplay.map((m: any) => (
                     <tr key={m._id}>
-                      <td style={{ fontWeight: 600 }}>{(m.userId as any)?.name}</td>
+                      <td style={{ fontWeight: 600 }}>{(m.userId as any)?.name}{String((m.userId as any)?._id) === String(user?._id) && <span style={{ color: 'var(--text-tertiary)', fontSize: '0.8125rem', marginLeft: 6 }}>(anda)</span>}</td>
                       <td style={{ color: 'var(--text-tertiary)' }}>{(m.userId as any)?.email}</td>
-                      <td><span className={`badge ${m.role === 'co-teacher' ? 'badge-purple' : 'badge-green'}`}>{m.role === 'co-teacher' ? 'Co-Teacher' : 'Siswa'}</span></td>
                       <td>
-                        {m.role === 'co-teacher' ? (
+                        {m.role === 'owner' ? (
+                          <span className="badge badge-blue">Owner</span>
+                        ) : (
+                          <span className={`badge ${m.role === 'co-teacher' ? 'badge-purple' : 'badge-green'}`}>{m.role === 'co-teacher' ? 'Co-Teacher' : 'Siswa'}</span>
+                        )}
+                      </td>
+                      <td>
+                        {m.role === 'owner' ? null : m.role === 'co-teacher' ? (
                           <button className="btn btn-ghost btn-sm" style={{ color: 'var(--red-400)' }} onClick={() => handleRemoveCoTeacher((m.userId as any)?._id)}>
                             <Trash2 size={14} />
                           </button>
@@ -473,6 +496,28 @@ export default function ClassDetailPage() {
               ))}
             </div>
           )}
+        </div>
+      )}
+
+      {/* Add Topic Modal */}
+      {showAddTopic && (
+        <div className="modal-overlay" onClick={() => { setShowAddTopic(false); setTopicName(''); }}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>Tambah Topik</h2>
+              <button className="btn btn-ghost btn-icon" onClick={() => { setShowAddTopic(false); setTopicName(''); }}><X size={20} /></button>
+            </div>
+            <div className="modal-body">
+              <div className="form-group">
+                <label className="form-label">Nama Topik</label>
+                <input className="form-input" value={topicName} onChange={(e) => setTopicName(e.target.value)} autoFocus />
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-secondary" onClick={() => { setShowAddTopic(false); setTopicName(''); }}>Batal</button>
+              <button className="btn btn-primary" onClick={handleAddTopic} disabled={!topicName.trim()}>Tambah</button>
+            </div>
+          </div>
         </div>
       )}
 
@@ -542,6 +587,43 @@ export default function ClassDetailPage() {
             <div className="modal-footer">
               <button className="btn btn-secondary" onClick={() => setShowInvite(false)}>Batal</button>
               <button className="btn btn-primary" onClick={handleInvite} disabled={!inviteEmail.trim()}>Undang</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showDeleteClass && (
+        <div className="modal-overlay" onClick={() => setShowDeleteClass(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>Hapus Kelas</h2>
+              <button className="btn btn-ghost btn-icon" onClick={() => setShowDeleteClass(false)}><X size={20} /></button>
+            </div>
+            <div className="modal-body">
+              <p style={{ marginTop: 0, color: 'var(--text-secondary)' }}>
+                Tindakan ini akan menghapus kelas dan data terkait. Untuk melanjutkan, ketik ulang nama kelas:
+              </p>
+              <div style={{ fontWeight: 700, marginBottom: 10 }}>{(classData?.name || '').trim()}</div>
+              <div className="form-group">
+                <label className="form-label">Ketik nama kelas untuk konfirmasi</label>
+                <input
+                  className="form-input"
+                  value={deleteClassTypedName}
+                  onChange={(e) => setDeleteClassTypedName(e.target.value)}
+                  placeholder="Nama kelas"
+                  autoFocus
+                />
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-secondary" onClick={() => setShowDeleteClass(false)}>Batal</button>
+              <button
+                className="btn btn-danger"
+                onClick={handleDeleteClass}
+                disabled={deleteClassTypedName.trim() !== (classData?.name || '').trim()}
+              >
+                Hapus Kelas
+              </button>
             </div>
           </div>
         </div>
