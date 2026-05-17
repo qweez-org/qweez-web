@@ -3,31 +3,23 @@ import type React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../api/client';
 import { ArrowLeft, Plus, FileQuestion, Clock, ChevronRight, Trash2, Radio, Download, CalendarClock } from 'lucide-react';
+import { toErrorMessage } from '../utils/errors';
+import { formatScheduleDate, statusColors, statusLabels } from '../utils/format';
 
-const statusColors: Record<string, string> = {
-  draft: 'badge-gray',
-  scheduled: 'badge-yellow',
-  open: 'badge-green',
-  closed: 'badge-red',
-  waiting: 'badge-orange',
-  in_progress: 'badge-blue',
-  finished: 'badge-purple',
-};
 
-const statusLabels: Record<string, string> = {
-  draft: 'Draf',
-  scheduled: 'Terjadwal',
-  open: 'Terbuka',
-  closed: 'Ditutup',
-  waiting: 'Menunggu',
-  in_progress: 'Berlangsung',
-  finished: 'Selesai',
-};
 
-function formatScheduleDate(dateStr?: string) {
-  if (!dateStr) return '–';
-  const d = new Date(dateStr);
-  return d.toLocaleString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+
+
+function formatRemaining(closeStr?: string) {
+  if (!closeStr) return '';
+  const close = new Date(closeStr);
+  const now = new Date();
+  if (close <= now) return 'Sudah ditutup';
+  const diffMs = close.getTime() - now.getTime();
+  const hours = Math.floor(diffMs / (1000 * 60 * 60));
+  const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+  if (hours > 0) return `Ditutup dalam ${hours}j ${minutes}m`;
+  return `Ditutup dalam ${minutes}m`;
 }
 
 export default function TopicDetailPage() {
@@ -46,9 +38,7 @@ export default function TopicDetailPage() {
   const [scheduledOpen, setScheduledOpen] = useState('');
   const [scheduledClose, setScheduledClose] = useState('');
 
-  const toErrorMessage = (e: any) => {
-    return e?.response?.data?.message || e?.message || 'Terjadi kesalahan';
-  };
+
 
   useEffect(() => {
     const load = async () => {
@@ -176,6 +166,12 @@ export default function TopicDetailPage() {
                       {quiz.scheduledClose && <>Tutup: {formatScheduleDate(quiz.scheduledClose)}</>}
                     </p>
                   )}
+                  {quiz.mode === 'scheduled' && quiz.status === 'open' && quiz.scheduledClose && (
+                    <p style={{ fontSize: '0.75rem', color: 'var(--red-600)', marginTop: 4, display: 'flex', alignItems: 'center', gap: 4, fontWeight: 600 }}>
+                      <Clock size={12} />
+                      {formatRemaining(quiz.scheduledClose)}
+                    </p>
+                  )}
                 </div>
                 <div className="quiz-card-actions">
                   {quiz.mode === 'live' && (
@@ -193,7 +189,7 @@ export default function TopicDetailPage() {
                   }}>
                     <Download size={14} />
                   </button>
-                  {quiz.status !== 'draft' && (
+                  {quiz.status !== 'draft' && quiz.mode !== 'live' && (
                     <button className={`btn btn-sm ${quiz.status === 'open' ? 'btn-danger' : 'btn-primary'}`} onClick={(e) => handleToggleStatus(quiz, e)}>
                       {quiz.status === 'open' ? 'Tutup' : 'Buka'}
                     </button>
@@ -252,7 +248,7 @@ export default function TopicDetailPage() {
                       className="form-input"
                       value={scheduledOpen}
                       onChange={(e) => setScheduledOpen(e.target.value)}
-                      min={new Date().toISOString().slice(0, 16)}
+                      min={(() => { const d = new Date(); return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16); })()}
                       style={{ width: '100%' }}
                     />
                     <p className="form-hint">Kuis akan otomatis terbuka pada waktu ini.</p>
@@ -264,7 +260,7 @@ export default function TopicDetailPage() {
                       className="form-input"
                       value={scheduledClose}
                       onChange={(e) => setScheduledClose(e.target.value)}
-                      min={scheduledOpen || new Date().toISOString().slice(0, 16)}
+                      min={scheduledOpen || (() => { const d = new Date(); return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16); })()}
                       style={{ width: '100%' }}
                     />
                     <p className="form-hint">Kuis akan otomatis ditutup pada waktu ini.</p>

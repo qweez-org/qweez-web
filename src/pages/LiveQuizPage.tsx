@@ -1,37 +1,15 @@
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../api/client';
-import { ArrowLeft, Radio, Play, X, Trophy, Users, Copy, Check, ChevronRight, Hash } from 'lucide-react';
+import { ArrowLeft, Radio, Play, X, Trophy, Users, Copy, Check, Hash, Clock } from 'lucide-react';
 import { useSocket } from '../context/SocketContext';
+import { toErrorMessage } from '../utils/errors';
 
-type LiveState = 'setup' | 'lobby' | 'active' | 'result' | 'finished';
+type LiveState = 'setup' | 'lobby' | 'active' | 'finished';
 
 interface Participant {
   userId: string;
   displayName: string;
-}
-
-interface QuestionPayload {
-  questionIndex: number;
-  question: {
-    _id: string;
-    text: string;
-    type: string;
-    points: number;
-    options: { text: string }[];
-  };
-  timeLimit: number;
-  totalQuestions: number;
-}
-
-interface QuestionResult {
-  questionIndex: number;
-  correctAnswer: string;
-  stats: {
-    totalAnswered: number;
-    correctCount: number;
-    wrongCount: number;
-  };
 }
 
 interface LeaderboardEntry {
@@ -52,9 +30,7 @@ export default function LiveQuizPage() {
   const [actionLoading, setActionLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const toErrorMessage = (e: any) => {
-    return e?.response?.data?.message || e?.message || 'Terjadi kesalahan';
-  };
+
 
   // Session state
   const [state, setState] = useState<LiveState>('setup');
@@ -62,13 +38,18 @@ export default function LiveQuizPage() {
   const [pinCopied, setPinCopied] = useState(false);
   const [participants, setParticipants] = useState<Participant[]>([]);
 
-  // Question state
-  const [currentQuestion, setCurrentQuestion] = useState<QuestionPayload | null>(null);
-  const [answerCount, setAnswerCount] = useState(0);
-  const [lastResult, setLastResult] = useState<QuestionResult | null>(null);
+  // Live progress state
+  const [finishedCount, setFinishedCount] = useState(0);
+  const [totalDuration, setTotalDuration] = useState(0);
+  const [elapsedSec, setElapsedSec] = useState(0);
+  const elapsedRef = useRef(0);
+  const timerIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Leaderboard
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
+  const [liveLeaderboard, setLiveLeaderboard] = useState<LeaderboardEntry[]>([]);
+  const [answeredCounts, setAnsweredCounts] = useState<Record<string, number>>({});
+  const [totalQuestions, setTotalQuestions] = useState(0);
 
   // Track if start_quiz already fired
   const startedRef = useRef(false);
@@ -137,30 +118,35 @@ export default function LiveQuizPage() {
       // Just update count, participant list will be refreshed
     };
 
-    const onQuizStarted = (data: QuestionPayload) => {
+    const onQuizStarted = (data: any) => {
       setState('active');
-      setCurrentQuestion(data);
-      setAnswerCount(0);
-      setLastResult(null);
+      setFinishedCount(0);
+      const dur = data.totalDurationSec || 0;
+      setTotalDuration(dur);
+      elapsedRef.current = 0;
+      setElapsedSec(0);
+      if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+      timerIntervalRef.current = setInterval(() => {
+        elapsedRef.current += 1;
+        setElapsedSec(elapsedRef.current);
+      }, 1000);
     };
 
-    const onQuestionStart = (data: QuestionPayload) => {
-      setState('active');
-      setCurrentQuestion(data);
-      setAnswerCount(0);
-      setLastResult(null);
+    const onStudentFinished = (data: { finishCount: number; total: number; displayName: string }) => {
+      setFinishedCount(data.finishCount);
     };
 
-    const onAnswerCountUpdate = (data: { questionIndex: number; count: number; total: number }) => {
-      setAnswerCount(data.count);
-    };
-
-    const onQuestionResult = (data: QuestionResult) => {
-      setLastResult(data);
-      setState('result');
+    const onLeaderboardUpdate = (data: { leaderboard: LeaderboardEntry[]; answeredCounts: Record<string, number>; totalQuestions: number }) => {
+      setLiveLeaderboard(data.leaderboard);
+      setAnsweredCounts(data.answeredCounts);
+      setTotalQuestions(data.totalQuestions);
     };
 
     const onQuizEnded = (data: { leaderboard: LeaderboardEntry[] }) => {
+      if (timerIntervalRef.current) {
+        clearInterval(timerIntervalRef.current);
+        timerIntervalRef.current = null;
+      }
       setLeaderboard(data.leaderboard);
       setState('finished');
     };
@@ -169,9 +155,8 @@ export default function LiveQuizPage() {
     socket.on('participant_joined', onParticipantJoined);
     socket.on('participant_left', onParticipantLeft);
     socket.on('quiz_started', onQuizStarted);
-    socket.on('question_start', onQuestionStart);
-    socket.on('answer_count_update', onAnswerCountUpdate);
-    socket.on('question_result', onQuestionResult);
+    socket.on('student_finished', onStudentFinished);
+    socket.on('leaderboard_update', onLeaderboardUpdate);
     socket.on('quiz_ended', onQuizEnded);
 
     return () => {
@@ -179,9 +164,8 @@ export default function LiveQuizPage() {
       socket.off('participant_joined', onParticipantJoined);
       socket.off('participant_left', onParticipantLeft);
       socket.off('quiz_started', onQuizStarted);
-      socket.off('question_start', onQuestionStart);
-      socket.off('answer_count_update', onAnswerCountUpdate);
-      socket.off('question_result', onQuestionResult);
+      socket.off('student_finished', onStudentFinished);
+      socket.off('leaderboard_update', onLeaderboardUpdate);
       socket.off('quiz_ended', onQuizEnded);
     };
   }, [socket, connected, pin]);
@@ -209,10 +193,9 @@ export default function LiveQuizPage() {
     setTimeout(() => setActionLoading(false), 1000);
   };
 
-  const handleNextQuestion = () => {
-    if (!socket || !pin) return;
-    socket.emit('next_question', { pin });
-    setLastResult(null);
+  const handleForceEnd = () => {
+    if (!socket || !pin || !confirm('Akhiri kuis sekarang? Semua siswa yang belum selesai akan dinilai berdasarkan jawaban yang sudah dikumpulkan.')) return;
+    socket.emit('force_end', { pin });
   };
 
   const handleCancel = async () => {
@@ -260,6 +243,15 @@ export default function LiveQuizPage() {
       <button className="btn btn-ghost btn-sm" style={{ marginBottom: 16 }} onClick={() => navigate(-1)}>
         <ArrowLeft size={16} /> Kembali
       </button>
+
+      {(state === 'lobby' || state === 'active') && (
+        <div style={{ marginBottom: 16, padding: '10px 14px', borderRadius: 'var(--radius-md)', background: 'var(--yellow-50)', border: '1px solid var(--yellow-200)', display: 'flex', alignItems: 'center', gap: 10 }}>
+          <Radio size={18} color="var(--yellow-600)" />
+          <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--yellow-800)', lineHeight: 1.4 }}>
+            <b>Sesi live sedang berjalan.</b> Jangan menutup atau memuat ulang halaman ini agar koneksi tetap terjaga.
+          </p>
+        </div>
+      )}
 
       <div className="live-panel">
         {/* Header */}
@@ -366,104 +358,98 @@ export default function LiveQuizPage() {
           </div>
         )}
 
-        {/* ── ACTIVE (Question Control) ──────────────────────────────────── */}
-        {state === 'active' && currentQuestion && (
-          <div>
-            {/* Question info */}
+        {/* ── ACTIVE (Live Progress Dashboard) ────────────────────────────── */}
+        {state === 'active' && (
+          <div style={{ textAlign: 'center', padding: '24px 0' }}>
+            {/* Timer */}
             <div style={{
               background: 'var(--primary-50)',
-              borderRadius: 'var(--radius-lg)',
-              padding: '20px 24px',
-              marginBottom: 20,
+              borderRadius: 'var(--radius-xl)',
+              padding: '32px',
+              marginBottom: 24,
+              border: '2px dashed var(--primary-300)',
             }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                <span className="badge badge-blue" style={{ fontSize: '0.875rem', padding: '6px 14px' }}>
-                  Soal {currentQuestion.questionIndex + 1} / {currentQuestion.totalQuestions}
-                </span>
-                <span className="badge badge-green">
-                  ● Berlangsung
-                </span>
-              </div>
-              <h3 style={{ fontSize: '1.125rem', marginBottom: 12 }}>{currentQuestion.question.text}</h3>
-              {currentQuestion.question.options.length > 0 && (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
-                  {currentQuestion.question.options.map((opt, i) => (
-                    <div key={i} style={{
-                      padding: '10px 14px',
-                      borderRadius: 'var(--radius-sm)',
-                      background: 'var(--surface-card)',
-                      border: '1px solid var(--border)',
-                      fontSize: '0.9375rem',
-                    }}>
-                      <strong style={{ color: 'var(--primary-600)', marginRight: 8 }}>
-                        {String.fromCharCode(65 + i)}.
-                      </strong>
-                      {opt.text}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Answer count + controls */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div>
-                <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-                  <Users size={14} style={{ verticalAlign: -2 }} /> {answerCount} / {participants.length} menjawab
-                </p>
-              </div>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <button className="btn btn-primary" onClick={handleNextQuestion}>
-                  {currentQuestion.questionIndex + 1 >= currentQuestion.totalQuestions
-                    ? <><Trophy size={16} /> Selesai &amp; Lihat Hasil</>
-                    : <><ChevronRight size={16} /> Soal Selanjutnya</>
-                  }
-                </button>
-                <button className="btn btn-danger btn-sm" onClick={handleCancel}>
-                  <X size={14} />
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ── RESULT (between questions) ──────────────────────────────────── */}
-        {state === 'result' && lastResult && (
-          <div style={{ textAlign: 'center', padding: '32px 20px' }}>
-            <h3 style={{ marginBottom: 16 }}>📊 Hasil Soal {lastResult.questionIndex + 1}</h3>
-            <div style={{ display: 'flex', gap: 16, justifyContent: 'center', marginBottom: 24 }}>
+              <p style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-tertiary)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                <Clock size={14} style={{ verticalAlign: -2 }} /> Waktu Berjalan
+              </p>
               <div style={{
-                padding: '20px 32px',
-                background: 'var(--primary-50)',
-                borderRadius: 'var(--radius-lg)',
-                textAlign: 'center',
+                fontSize: '3rem',
+                fontWeight: 900,
+                fontFamily: 'monospace',
+                color: elapsedSec >= totalDuration ? 'var(--red-500)' : 'var(--primary-600)',
+                letterSpacing: '0.1em',
+                lineHeight: 1,
+                marginBottom: 12,
               }}>
-                <div style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--primary-600)' }}>
-                  {lastResult.stats.correctCount}
-                </div>
-                <p style={{ fontSize: '0.8125rem', color: 'var(--text-tertiary)' }}>Benar</p>
+                {Math.floor(elapsedSec / 60).toString().padStart(2, '0')}:{(elapsedSec % 60).toString().padStart(2, '0')} / {Math.floor(totalDuration / 60).toString().padStart(2, '0')}:{(totalDuration % 60).toString().padStart(2, '0')}
               </div>
               <div style={{
-                padding: '20px 32px',
-                background: 'var(--red-50)',
-                borderRadius: 'var(--radius-lg)',
-                textAlign: 'center',
+                width: '100%',
+                height: 8,
+                background: 'var(--primary-100)',
+                borderRadius: 4,
+                overflow: 'hidden',
               }}>
-                <div style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--red-500)' }}>
-                  {lastResult.stats.wrongCount}
-                </div>
-                <p style={{ fontSize: '0.8125rem', color: 'var(--text-tertiary)' }}>Salah</p>
+                <div style={{
+                  width: `${Math.min(100, (elapsedSec / Math.max(1, totalDuration)) * 100)}%`,
+                  height: '100%',
+                  background: elapsedSec >= totalDuration ? 'var(--red-500)' : 'var(--primary-500)',
+                  borderRadius: 4,
+                  transition: 'width 1s linear',
+                }} />
               </div>
             </div>
-            <p style={{ fontSize: '0.9375rem', color: 'var(--text-secondary)', marginBottom: 20 }}>
-              Jawaban benar: <strong>{lastResult.correctAnswer}</strong>
-            </p>
-            <button className="btn btn-primary btn-lg" onClick={handleNextQuestion}>
-              {currentQuestion && currentQuestion.questionIndex + 1 >= currentQuestion.totalQuestions
-                ? <><Trophy size={18} /> Selesai &amp; Lihat Hasil</>
-                : <><ChevronRight size={18} /> Soal Selanjutnya</>
-              }
-            </button>
+
+            {/* Progress */}
+            <div className="participant-counter">
+              <div className="participant-count">{finishedCount}</div>
+              <p>dari {participants.length} siswa sudah selesai</p>
+            </div>
+
+            {/* Finished students */}
+            {finishedCount > 0 && (
+              <div style={{ marginTop: 16, fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+                <p>⏳ {participants.length - finishedCount} siswa masih mengerjakan...</p>
+              </div>
+            )}
+
+            {/* Actions */}
+            <div style={{ display: 'flex', gap: 12, justifyContent: 'center', marginTop: 24 }}>
+              <button className="btn btn-danger" onClick={handleForceEnd}>
+                <X size={18} /> Akhiri Kuis Sekarang
+              </button>
+            </div>
+
+            {/* Live Leaderboard */}
+            {liveLeaderboard.length > 0 && (
+              <div style={{ marginTop: 32 }}>
+                <h4 style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, fontSize: '1rem' }}>
+                  <Trophy size={18} /> Leaderboard Live
+                </h4>
+                <table className="leaderboard-table" style={{ fontSize: '0.875rem' }}>
+                  <thead>
+                    <tr>
+                      <th>#</th>
+                      <th>Nama</th>
+                      <th>Skor</th>
+                      <th>Terjawab</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {liveLeaderboard.map((entry) => (
+                      <tr key={entry.rank} className={entry.rank <= 3 ? `rank-${entry.rank}` : ''}>
+                        <td className="rank-cell">{getMedal(entry.rank)}</td>
+                        <td style={{ fontWeight: 600 }}>{entry.displayName}</td>
+                        <td><span className="badge badge-green">{entry.score} pts</span></td>
+                        <td style={{ color: 'var(--text-tertiary)' }}>
+                          {answeredCounts[entry.userId] || 0} / {totalQuestions}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         )}
 

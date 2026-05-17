@@ -3,6 +3,7 @@ import type React from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api/client';
 import { Plus, Users, BookOpen, GraduationCap, X, Copy } from 'lucide-react';
+import { toErrorMessage } from '../utils/errors';
 
 const bannerVariants = ['variant-1', 'variant-2', 'variant-3', 'variant-4', 'variant-5'];
 
@@ -16,9 +17,7 @@ export default function ClassesPage() {
   const [newDesc, setNewDesc] = useState('');
   const [creating, setCreating] = useState(false);
 
-  const toErrorMessage = (e: any) => {
-    return e?.response?.data?.message || e?.message || 'Terjadi kesalahan';
-  };
+
 
   const fetchClasses = async () => {
     try {

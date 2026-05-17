@@ -4,6 +4,7 @@ import api from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { GraduationCap, Users, FileQuestion, TrendingUp, Clock, Plus, Bell } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { toErrorMessage } from '../utils/errors';
 
 export default function DashboardPage() {
   const { user } = useAuth();
@@ -14,9 +15,7 @@ export default function DashboardPage() {
 
   const [error, setError] = useState<string | null>(null);
 
-  const toErrorMessage = (e: any) => {
-    return e?.response?.data?.message || e?.message || 'Terjadi kesalahan';
-  };
+
 
 
   useEffect(() => {

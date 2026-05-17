@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import api from '../api/client';
 import { Bell, Check, Clock, BookOpen, FileQuestion } from 'lucide-react';
+import { toErrorMessage } from '../utils/errors';
 
 const typeIcons: Record<string, any> = {
   join_approved: Check,
@@ -26,9 +27,7 @@ export default function NotificationsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const toErrorMessage = (e: any) => {
-    return e?.response?.data?.message || e?.message || 'Terjadi kesalahan';
-  };
+
 
   useEffect(() => {
     const fetch = async () => {

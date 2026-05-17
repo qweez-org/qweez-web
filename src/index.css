@@ -446,6 +446,10 @@ h4 { font-size: 1.125rem; }
   transform: none !important;
 }
 
+.btn:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
 /* ===================================
    CARDS
    =================================== */
@@ -640,12 +644,12 @@ h4 { font-size: 1.125rem; }
   max-width: 520px;
   max-height: 90vh;
   overflow-y: auto;
-  animation: slideUp 0.2s ease;
+  animation: scaleIn 0.2s ease;
 }
 
-@keyframes slideUp {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
 }
 
 .modal-header {
@@ -912,6 +916,63 @@ h4 { font-size: 1.125rem; }
   align-items: center;
   justify-content: center;
   min-height: 400px;
+}
+
+/* ===================================
+   SKELETON LOADING
+   =================================== */
+.skeleton {
+  background: linear-gradient(90deg, var(--gray-100) 25%, var(--gray-50) 50%, var(--gray-100) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+  border-radius: var(--radius-sm);
+}
+
+.skeleton-text {
+  height: 14px;
+  width: 100%;
+  margin-bottom: 8px;
+}
+
+.skeleton-text:last-child {
+  width: 60%;
+}
+
+.skeleton-heading {
+  height: 22px;
+  width: 40%;
+  margin-bottom: 16px;
+}
+
+.skeleton-card {
+  height: 120px;
+  border-radius: var(--radius-lg);
+  margin-bottom: 16px;
+}
+
+.skeleton-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-full);
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ===================================
+   STAGGERED LIST ANIMATION
+   =================================== */
+.stagger-item {
+  opacity: 0;
+  transform: translateY(8px);
+  animation: staggerIn 0.3s ease-out forwards;
+}
+
+@keyframes staggerIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 /* ===================================

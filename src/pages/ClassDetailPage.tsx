@@ -7,6 +7,7 @@ import {
   ArrowLeft, ChevronRight, Trash2, Copy, ClipboardList, Download, Pencil, RefreshCw, UserPlus
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { toErrorMessage } from '../utils/errors';
 
 export default function ClassDetailPage() {
   const { classId } = useParams();
@@ -43,9 +44,7 @@ export default function ClassDetailPage() {
   const [showInvite, setShowInvite] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
 
-  const toErrorMessage = (e: any) => {
-    return e?.response?.data?.message || e?.message || 'Terjadi kesalahan';
-  };
+
 
   const membersForDisplay = useMemo(() => {
     const owner = classData?.owner;

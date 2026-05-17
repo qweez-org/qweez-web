@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/client';
 import { User, Mail, Save, Check, AlertCircle } from 'lucide-react';
+import { toErrorMessage } from '../utils/errors';
 
 export default function ProfilePage() {
   const { user, logout } = useAuth();
@@ -22,7 +23,7 @@ export default function ProfilePage() {
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
     } catch (e: any) {
-      setError(e?.response?.data?.message || e?.message || 'Gagal menyimpan profil');
+      setError(toErrorMessage(e));
     } finally {
       setSaving(false);
     }

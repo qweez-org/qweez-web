@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../api/client';
-import { ArrowLeft, Plus, Check, X, CalendarClock, Pencil, Trash2, ArrowUp, ArrowDown, Radio } from 'lucide-react';
+import { ArrowLeft, Plus, Check, X, CalendarClock, Pencil, Trash2, ArrowUp, ArrowDown, Radio, Timer, FileText, LayoutList, Repeat, CalendarDays } from 'lucide-react';
+import { toErrorMessage } from '../utils/errors';
+import { formatScheduleDate, statusColors, statusLabels } from '../utils/format';
 
 export default function QuizEditorPage() {
   const { quizId } = useParams();
@@ -12,7 +14,7 @@ export default function QuizEditorPage() {
   const [error, setError] = useState<string | null>(null);
 
   // Schedule editing
-  const [editSchedule, setEditSchedule] = useState(false);
+
   const [schedOpen, setSchedOpen] = useState('');
   const [schedClose, setSchedClose] = useState('');
 
@@ -27,8 +29,10 @@ export default function QuizEditorPage() {
   // Add question form
   const [showAdd, setShowAdd] = useState(false);
   const [qText, setQText] = useState('');
-  const [qType, setQType] = useState<'multiple_choice' | 'essay'>('multiple_choice');
+  const [qType, setQType] = useState<'multiple_choice' | 'short_answer'>('multiple_choice');
   const [qPoints, setQPoints] = useState(10);
+  const [qCaseSensitive, setQCaseSensitive] = useState(false);
+  const [qSpaceSensitive, setQSpaceSensitive] = useState(false);
   const [qOptions, setQOptions] = useState([
     { text: '', isCorrect: true },
     { text: '', isCorrect: false },
@@ -36,14 +40,15 @@ export default function QuizEditorPage() {
     { text: '', isCorrect: false },
   ]);
 
+  const [quizShuffleQuestions, setQuizShuffleQuestions] = useState(false);
+  const [quizShuffleOptions, setQuizShuffleOptions] = useState(false);
+
   const [showEdit, setShowEdit] = useState(false);
   const [editingQ, setEditingQ] = useState<any>(null);
 
   const canEdit = useMemo(() => quiz?.status === 'draft', [quiz?.status]);
 
-  const toErrorMessage = (e: any) => {
-    return e?.response?.data?.message || e?.message || 'Terjadi kesalahan';
-  };
+
 
   const fetchData = async () => {
     try {
@@ -55,15 +60,21 @@ export default function QuizEditorPage() {
       const q = quizRes.data.quiz;
       setQuiz(q);
       setQuestions(qRes.data.questions || []);
-      // Init schedule fields
-      if (q.scheduledOpen) setSchedOpen(new Date(q.scheduledOpen).toISOString().slice(0, 16));
-      if (q.scheduledClose) setSchedClose(new Date(q.scheduledClose).toISOString().slice(0, 16));
+      // Init schedule fields (convert UTC → local for datetime-local inputs)
+      const toLocalInput = (iso: string) => {
+        const d = new Date(iso);
+        return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+      };
+      if (q.scheduledOpen) setSchedOpen(toLocalInput(q.scheduledOpen));
+      if (q.scheduledClose) setSchedClose(toLocalInput(q.scheduledClose));
       // Init metadata fields
       setQuizTitle(q.title || '');
       setQuizDesc(q.description || '');
       setQuizDuration(Number(q.duration || 10));
       setQuizAttemptLimit(Number(q.attemptLimit || 1));
       setQuizMode((q.mode || 'manual') as any);
+      setQuizShuffleQuestions(q.shuffleQuestions || false);
+      setQuizShuffleOptions(q.shuffleOptions || false);
     } catch (e: any) {
       setError(toErrorMessage(e));
     }
@@ -72,38 +83,7 @@ export default function QuizEditorPage() {
 
   useEffect(() => { fetchData(); }, [quizId]);
 
-  const handleSaveSchedule = async () => {
-    try {
-      setError(null);
-      await api.patch(`/quizzes/${quizId}`, {
-        scheduledOpen: schedOpen ? new Date(schedOpen).toISOString() : null,
-        scheduledClose: schedClose ? new Date(schedClose).toISOString() : null,
-        mode: 'scheduled',
-      });
-      setEditSchedule(false);
-      fetchData();
-    } catch (e: any) {
-      setError(toErrorMessage(e));
-    }
-  };
 
-  const handleCancelSchedule = async () => {
-    if (!confirm('Batalkan jadwal kuis? Jadwal buka/tutup akan dihapus dan mode kembali ke manual.')) return;
-    try {
-      setError(null);
-      await api.patch(`/quizzes/${quizId}`, {
-        scheduledOpen: null,
-        scheduledClose: null,
-        mode: 'manual',
-      });
-      setSchedOpen('');
-      setSchedClose('');
-      setEditSchedule(false);
-      fetchData();
-    } catch (e: any) {
-      setError(toErrorMessage(e));
-    }
-  };
 
   const handleDeleteQuiz = async () => {
     if (!confirm('Hapus kuis ini? Semua soal dan hasil akan terhapus.')) return;
@@ -122,6 +102,8 @@ export default function QuizEditorPage() {
     setQuizDuration(Number(quiz?.duration || 10));
     setQuizAttemptLimit(Number(quiz?.attemptLimit || 1));
     setQuizMode((quiz?.mode || 'manual') as any);
+    setQuizShuffleQuestions(quiz?.shuffleQuestions || false);
+    setQuizShuffleOptions(quiz?.shuffleOptions || false);
     setShowEditQuiz(true);
   };
 
@@ -132,14 +114,21 @@ export default function QuizEditorPage() {
       await api.patch(`/quizzes/${quizId}`, {
         title: quizTitle.trim(),
         description: quizDesc,
-        duration: quizDuration,
-        attemptLimit: quizAttemptLimit,
-        mode: quizMode,
       });
       setShowEditQuiz(false);
       fetchData();
     } catch (e: any) {
       setError(toErrorMessage(e));
+    }
+  };
+
+  const handleAutoSave = async (updates: any) => {
+    try {
+      setError(null);
+      await api.patch(`/quizzes/${quizId}`, updates);
+      fetchData();
+    } catch (err: any) {
+      setError(toErrorMessage(err));
     }
   };
 
@@ -193,11 +182,27 @@ export default function QuizEditorPage() {
 
   const handleAddQuestion = async () => {
     if (!qText.trim()) return;
+    if (qType === 'multiple_choice') {
+      const correctOpt = qOptions.find((o) => o.isCorrect);
+      if (correctOpt && !correctOpt.text.trim()) {
+        setError('Opsi jawaban benar tidak boleh kosong. Harap isi terlebih dahulu.');
+        return;
+      }
+    } else if (qType === 'short_answer') {
+      if (!qOptions.some((o) => o.text.trim())) {
+        setError('Harap isi setidaknya satu kemungkinan jawaban yang benar.');
+        return;
+      }
+    }
     try {
       setError(null);
       const body: any = { text: qText, type: qType, points: qPoints };
       if (qType === 'multiple_choice') {
         body.options = qOptions.filter((o) => o.text.trim());
+      } else if (qType === 'short_answer') {
+        body.options = qOptions.filter((o) => o.text.trim()).map(o => ({ text: o.text.trim(), isCorrect: true }));
+        body.caseSensitive = qCaseSensitive;
+        body.spaceSensitive = qSpaceSensitive;
       }
       await api.post(`/quizzes/${quizId}/questions`, body);
       setShowAdd(false);
@@ -209,10 +214,13 @@ export default function QuizEditorPage() {
   };
 
   const openEdit = (q: any) => {
+    setError(null);
     setEditingQ(q);
     setQText(q.text || '');
     setQType(q.type || 'multiple_choice');
     setQPoints(q.points || 10);
+    setQCaseSensitive(q.caseSensitive || false);
+    setQSpaceSensitive(q.spaceSensitive || false);
     if (q.type === 'multiple_choice') {
       const opts = (q.options || []).map((o: any) => ({ text: o.text || '', isCorrect: !!o.isCorrect }));
       const normalized = [...opts];
@@ -220,13 +228,14 @@ export default function QuizEditorPage() {
       if (!normalized.some((o) => o.isCorrect) && normalized.length > 0) {
         normalized[0].isCorrect = true;
       }
-      setQOptions(normalized.slice(0, 4));
+      setQOptions(normalized);
+    } else if (q.type === 'short_answer') {
+      const opts = (q.options || []).map((o: any) => ({ text: o.text || '', isCorrect: true }));
+      while (opts.length < 1) opts.push({ text: '', isCorrect: true });
+      setQOptions(opts);
     } else {
       setQOptions([
         { text: '', isCorrect: true },
-        { text: '', isCorrect: false },
-        { text: '', isCorrect: false },
-        { text: '', isCorrect: false },
       ]);
     }
     setShowEdit(true);
@@ -235,11 +244,27 @@ export default function QuizEditorPage() {
   const handleSaveEdit = async () => {
     if (!editingQ?._id) return;
     if (!qText.trim()) return;
+    if (qType === 'multiple_choice') {
+      const correctOpt = qOptions.find((o) => o.isCorrect);
+      if (correctOpt && !correctOpt.text.trim()) {
+        setError('Opsi jawaban benar tidak boleh kosong. Harap isi terlebih dahulu.');
+        return;
+      }
+    } else if (qType === 'short_answer') {
+      if (!qOptions.some((o) => o.text.trim())) {
+        setError('Harap isi setidaknya satu kemungkinan jawaban yang benar.');
+        return;
+      }
+    }
     try {
       setError(null);
       const body: any = { text: qText, type: qType, points: qPoints };
       if (qType === 'multiple_choice') {
         body.options = qOptions.filter((o) => o.text.trim());
+      } else if (qType === 'short_answer') {
+        body.options = qOptions.filter((o) => o.text.trim()).map(o => ({ text: o.text.trim(), isCorrect: true }));
+        body.caseSensitive = qCaseSensitive;
+        body.spaceSensitive = qSpaceSensitive;
       } else {
         body.options = [];
       }
@@ -287,6 +312,8 @@ export default function QuizEditorPage() {
     setQText('');
     setQType('multiple_choice');
     setQPoints(10);
+    setQCaseSensitive(false);
+    setQSpaceSensitive(false);
     setQOptions([
       { text: '', isCorrect: true },
       { text: '', isCorrect: false },
@@ -304,25 +331,13 @@ export default function QuizEditorPage() {
     }));
   };
 
-  const formatDate = (d?: string) => {
-    if (!d) return '–';
-    return new Date(d).toLocaleString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
-  };
+
 
   if (loading) return <div className="loading-page"><div className="spinner" /></div>;
   if (!quiz) return <div>Kuis tidak ditemukan</div>;
 
   return (
     <div>
-      {error && (
-        <div className="card" style={{ marginBottom: 12, border: '1px solid var(--red-200)', background: 'var(--red-50)' }}>
-          <div style={{ padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-            <p style={{ color: 'var(--red-700)', fontSize: '0.875rem', margin: 0 }}>{error}</p>
-            <button className="btn btn-ghost btn-sm" onClick={() => setError(null)}>Tutup</button>
-          </div>
-        </div>
-      )}
-
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
         <button className="btn btn-ghost btn-sm" onClick={() => navigate(-1)}>
           <ArrowLeft size={16} /> Kembali
@@ -358,6 +373,15 @@ export default function QuizEditorPage() {
         </div>
       </div>
 
+      {error && !showAdd && !showEdit && !showEditQuiz && (
+        <div className="card" style={{ marginBottom: 12, border: '1px solid var(--red-200)', background: 'var(--red-50)' }}>
+          <div style={{ padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+            <p style={{ color: 'var(--red-700)', fontSize: '0.875rem', margin: 0 }}>{error}</p>
+            <button className="btn btn-ghost btn-sm" onClick={() => setError(null)}>Tutup</button>
+          </div>
+        </div>
+      )}
+
       {/* Quiz Info */}
       <div className="card" style={{ marginBottom: 24 }}>
         <div style={{
@@ -378,13 +402,45 @@ export default function QuizEditorPage() {
               </button>
             )}
           </div>
-          <div style={{ display: 'flex', gap: 12, fontSize: '0.875rem', color: 'var(--text-secondary)', flexWrap: 'wrap', alignItems: 'center' }}>
-            <span>⏱ {quiz.duration} menit</span>
-            <span>📝 {questions.length} soal</span>
-            <span>🔄 Mode: {quiz.mode}</span>
-            <span>🔁 Maks. Percobaan: {quiz.attemptLimit || 1}</span>
-            <span className={`badge ${quiz.status === 'open' ? 'badge-green' : quiz.status === 'draft' ? 'badge-gray' : quiz.status === 'scheduled' ? 'badge-yellow' : 'badge-gray'}`}>
-              {quiz.status}
+          <div style={{ display: 'flex', gap: 16, fontSize: '0.875rem', color: 'var(--text-secondary)', flexWrap: 'wrap', alignItems: 'center' }}>
+            {canEdit ? (
+              <>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <Timer size={14} /> <input type="number" className="form-input" style={{ width: 60, padding: '2px 8px', height: 28 }} value={quizDuration} onChange={(e) => setQuizDuration(Number(e.target.value))} onBlur={() => handleAutoSave({ duration: quizDuration })} min={1} /> menit
+                </label>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><FileText size={14} /> {questions.length} soal</span>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <LayoutList size={14} /> Tipe: 
+                  <select className="form-select" style={{ padding: '2px 24px 2px 8px', height: 28, fontSize: '0.875rem' }} value={quizMode === 'live' ? 'live' : 'biasa'} onChange={(e) => {
+                    const val = e.target.value;
+                    if (val === 'live') {
+                      setQuizMode('live');
+                      handleAutoSave({ mode: 'live', scheduledOpen: null, scheduledClose: null });
+                      setSchedOpen('');
+                      setSchedClose('');
+                    } else {
+                      setQuizMode('manual');
+                      handleAutoSave({ mode: 'manual' });
+                    }
+                  }}>
+                    <option value="biasa">Kuis Biasa</option>
+                    <option value="live">Live Quiz</option>
+                  </select>
+                </label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <Repeat size={14} /> Maks. Percobaan: <input type="number" className="form-input" style={{ width: 50, padding: '2px 8px', height: 28 }} value={quizAttemptLimit} onChange={(e) => setQuizAttemptLimit(Number(e.target.value))} onBlur={() => handleAutoSave({ attemptLimit: quizAttemptLimit })} min={1} />
+                </label>
+              </>
+            ) : (
+              <>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><Timer size={14} /> {quiz.duration} menit</span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><FileText size={14} /> {questions.length} soal</span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><LayoutList size={14} /> Tipe: {quiz.mode === 'live' ? 'Live Quiz' : 'Kuis Biasa'}</span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><Repeat size={14} /> Maks. Percobaan: {quiz.attemptLimit || 1}</span>
+              </>
+            )}
+            <span className={`badge ${statusColors[quiz.status] || 'badge-gray'}`}>
+              {statusLabels[quiz.status] || quiz.status}
             </span>
           </div>
           {quiz.mode === 'live' && quiz.status !== 'draft' && (
@@ -394,104 +450,159 @@ export default function QuizEditorPage() {
           )}
         </div>
 
-        {/* Schedule section */}
-        {(quiz.mode === 'scheduled' || quiz.scheduledOpen || quiz.scheduledClose) && !editSchedule && (
-          <div style={{ padding: '16px 24px', borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 12 }}>
-            <CalendarClock size={18} style={{ color: 'var(--text-tertiary)' }} />
-            <div style={{ flex: 1 }}>
-              <p style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Jadwal Kuis</p>
-              <p style={{ fontSize: '0.8125rem', color: 'var(--text-tertiary)' }}>
-                Buka: {formatDate(quiz.scheduledOpen)} — Tutup: {formatDate(quiz.scheduledClose)}
-              </p>
+        {/* Schedule section (Only for non-live quizzes) */}
+        {quiz.mode !== 'live' && (
+          <div style={{ padding: '16px 24px', borderTop: '1px solid var(--border)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <p style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)' }}>Jadwalkan Kuis Otomatis</p>
+                <p style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>Buka dan tutup kuis secara otomatis berdasarkan waktu.</p>
+              </div>
+              <label className="toggle-switch" style={{ position: 'relative', display: 'inline-block', width: 44, height: 24, cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={quiz.mode === 'scheduled'}
+                  onChange={(e) => {
+                    if (e.target.checked) {
+                      setQuizMode('scheduled');
+                      handleAutoSave({ mode: 'scheduled' });
+                    } else {
+                      setQuizMode('manual');
+                      handleAutoSave({ mode: 'manual', scheduledOpen: null, scheduledClose: null });
+                      setSchedOpen('');
+                      setSchedClose('');
+                    }
+                  }}
+                  style={{ display: 'none' }}
+                />
+                <span style={{
+                  position: 'absolute', inset: 0, borderRadius: 24,
+                  background: quiz.mode === 'scheduled' ? 'var(--primary-500)' : 'var(--gray-300)',
+                  transition: 'background 0.2s',
+                }}>
+                  <span style={{
+                    position: 'absolute', top: 2, left: quiz.mode === 'scheduled' ? 22 : 2,
+                    width: 20, height: 20, borderRadius: '50%', background: '#fff',
+                    transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+                  }} />
+                </span>
+              </label>
             </div>
-            <div style={{ display: 'flex', gap: 8 }}>
-              {canEdit && quiz.mode === 'scheduled' && (
-                <button className="btn btn-danger btn-sm" onClick={handleCancelSchedule}>Batalkan Jadwal</button>
-              )}
-              <button className="btn btn-secondary btn-sm" onClick={() => setEditSchedule(true)}>Ubah Jadwal</button>
-            </div>
-          </div>
-        )}
 
-        {editSchedule && (
-          <div style={{ padding: '16px 24px', borderTop: '1px solid var(--border)', background: 'var(--gray-50)' }}>
-            <p style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
-              <CalendarClock size={16} /> Ubah Jadwal Kuis
-            </p>
-            <div className="form-group" style={{ marginBottom: 12 }}>
-              <label className="form-label">📅 Waktu Buka</label>
-              <input
-                type="datetime-local"
-                className="form-input"
-                value={schedOpen}
-                onChange={(e) => setSchedOpen(e.target.value)}
-                min={new Date().toISOString().slice(0, 16)}
-                style={{ width: '100%' }}
-              />
-              <p className="form-hint">Kuis akan otomatis terbuka pada waktu ini.</p>
-            </div>
-            <div className="form-group" style={{ marginBottom: 8 }}>
-              <label className="form-label">📅 Waktu Tutup</label>
-              <input
-                type="datetime-local"
-                className="form-input"
-                value={schedClose}
-                onChange={(e) => setSchedClose(e.target.value)}
-                min={schedOpen || new Date().toISOString().slice(0, 16)}
-                style={{ width: '100%' }}
-              />
-              <p className="form-hint">Kuis akan otomatis ditutup pada waktu ini.</p>
-            </div>
-            {schedOpen && schedClose && new Date(schedClose) <= new Date(schedOpen) && (
-              <p className="form-error" style={{ marginBottom: 8 }}>⚠️ Waktu tutup harus setelah waktu buka!</p>
+            {quiz.mode === 'scheduled' && (
+              <div style={{ marginTop: 16, display: 'flex', gap: 16, flexWrap: 'wrap', background: 'var(--gray-50)', padding: 16, borderRadius: 'var(--radius-md)' }}>
+                <div className="form-group" style={{ flex: 1, minWidth: 200, marginBottom: 0 }}>
+                  <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: 4 }}><CalendarDays size={14} /> Waktu Buka</label>
+                  <input
+                    type="datetime-local"
+                    className="form-input"
+                    value={schedOpen}
+                    onChange={(e) => {
+                      setSchedOpen(e.target.value);
+                      if (e.target.value) handleAutoSave({ scheduledOpen: new Date(e.target.value).toISOString() });
+                    }}
+                  />
+                </div>
+                <div className="form-group" style={{ flex: 1, minWidth: 200, marginBottom: 0 }}>
+                  <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: 4 }}><CalendarDays size={14} /> Waktu Tutup</label>
+                  <input
+                    type="datetime-local"
+                    className="form-input"
+                    value={schedClose}
+                    onChange={(e) => {
+                      setSchedClose(e.target.value);
+                      if (e.target.value) handleAutoSave({ scheduledClose: new Date(e.target.value).toISOString() });
+                    }}
+                  />
+                </div>
+              </div>
             )}
-            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-              {canEdit && quiz.mode === 'scheduled' && (
-                <button className="btn btn-danger btn-sm" onClick={handleCancelSchedule}>Batalkan Jadwal</button>
-              )}
-              <button className="btn btn-ghost btn-sm" onClick={() => setEditSchedule(false)}>Batal</button>
-              <button className="btn btn-primary btn-sm" onClick={handleSaveSchedule}>Simpan Jadwal</button>
-            </div>
-          </div>
-        )}
-
-        {/* Add schedule button for non-scheduled quizzes */}
-        {quiz.mode !== 'scheduled' && !quiz.scheduledOpen && !editSchedule && (
-          <div style={{ padding: '12px 24px', borderTop: '1px solid var(--border)' }}>
-            <button className="btn btn-ghost btn-sm" onClick={() => setEditSchedule(true)}>
-              <CalendarClock size={14} /> Tambah Jadwal Buka/Tutup
-            </button>
           </div>
         )}
 
         {/* Backtrack toggle */}
-        <div style={{ padding: '12px 24px', borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ padding: '12px 24px', borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', opacity: quiz.mode === 'live' ? 0.6 : 1 }}>
           <div>
             <p style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)' }}>Izinkan Kembali ke Soal Sebelumnya</p>
-            <p style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>Jika dimatikan, siswa hanya bisa maju ke soal berikutnya.</p>
+            <p style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>
+              {quiz.mode === 'live'
+                ? 'Live quiz selalu tidak bisa kembali ke soal sebelumnya.'
+                : 'Jika dimatikan, siswa hanya bisa maju ke soal berikutnya.'}
+            </p>
           </div>
-          <label className="toggle-switch" style={{ position: 'relative', display: 'inline-block', width: 44, height: 24, cursor: 'pointer' }}>
+          <label
+            className="toggle-switch"
+            style={{ position: 'relative', display: 'inline-block', width: 44, height: 24, cursor: quiz.mode === 'live' ? 'not-allowed' : 'pointer' }}
+            title={quiz.mode === 'live' ? 'Live quiz selalu tidak bisa kembali ke soal sebelumnya' : ''}
+          >
             <input
               type="checkbox"
-              checked={quiz.allowBacktrack !== false}
-              onChange={async (e) => {
-                try {
-                  setError(null);
-                  await api.patch(`/quizzes/${quizId}`, { allowBacktrack: e.target.checked });
-                  fetchData();
-                } catch (err: any) {
-                  setError(toErrorMessage(err));
-                }
-              }}
+              checked={quiz.mode === 'live' ? false : (quiz.allowBacktrack !== false)}
+              disabled={quiz.mode === 'live'}
+              onChange={(e) => handleAutoSave({ allowBacktrack: e.target.checked })}
               style={{ display: 'none' }}
             />
             <span style={{
               position: 'absolute', inset: 0, borderRadius: 24,
-              background: quiz.allowBacktrack !== false ? 'var(--primary-500)' : 'var(--gray-300)',
+              background: (quiz.mode === 'live' ? false : (quiz.allowBacktrack !== false)) ? 'var(--primary-500)' : 'var(--gray-300)',
               transition: 'background 0.2s',
             }}>
               <span style={{
-                position: 'absolute', top: 2, left: quiz.allowBacktrack !== false ? 22 : 2,
+                position: 'absolute', top: 2, left: (quiz.mode === 'live' ? false : (quiz.allowBacktrack !== false)) ? 22 : 2,
+                width: 20, height: 20, borderRadius: '50%', background: '#fff',
+                transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+              }} />
+            </span>
+          </label>
+        </div>
+
+        {/* Shuffle Questions toggle */}
+        <div style={{ padding: '12px 24px', borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div>
+            <p style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)' }}>Acak Urutan Soal</p>
+            <p style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>Setiap siswa mendapat urutan berbeda.</p>
+          </div>
+          <label className="toggle-switch" style={{ position: 'relative', display: 'inline-block', width: 44, height: 24, cursor: 'pointer' }}>
+            <input
+              type="checkbox"
+              checked={quiz.shuffleQuestions || false}
+              onChange={(e) => handleAutoSave({ shuffleQuestions: e.target.checked })}
+              style={{ display: 'none' }}
+            />
+            <span style={{
+              position: 'absolute', inset: 0, borderRadius: 24,
+              background: quiz.shuffleQuestions ? 'var(--primary-500)' : 'var(--gray-300)',
+              transition: 'background 0.2s',
+            }}>
+              <span style={{
+                position: 'absolute', top: 2, left: quiz.shuffleQuestions ? 22 : 2,
+                width: 20, height: 20, borderRadius: '50%', background: '#fff',
+                transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+              }} />
+            </span>
+          </label>
+        </div>
+
+        {/* Shuffle Options toggle */}
+        <div style={{ padding: '12px 24px', borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div>
+            <p style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)' }}>Acak Pilihan Jawaban</p>
+            <p style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>Opsi pada soal pilihan ganda akan diacak.</p>
+          </div>
+          <label className="toggle-switch" style={{ position: 'relative', display: 'inline-block', width: 44, height: 24, cursor: 'pointer' }}>
+            <input
+              type="checkbox"
+              checked={quiz.shuffleOptions || false}
+              onChange={(e) => handleAutoSave({ shuffleOptions: e.target.checked })}
+              style={{ display: 'none' }}
+            />
+            <span style={{
+              position: 'absolute', inset: 0, borderRadius: 24,
+              background: quiz.shuffleOptions ? 'var(--primary-500)' : 'var(--gray-300)',
+              transition: 'background 0.2s',
+            }}>
+              <span style={{
+                position: 'absolute', top: 2, left: quiz.shuffleOptions ? 22 : 2,
                 width: 20, height: 20, borderRadius: '50%', background: '#fff',
                 transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
               }} />
@@ -509,7 +620,7 @@ export default function QuizEditorPage() {
           )}
         </div>
         {canEdit && (
-          <button className="btn btn-primary btn-sm" onClick={() => setShowAdd(true)}>
+          <button className="btn btn-primary btn-sm" onClick={() => { setError(null); setShowAdd(true); }}>
             <Plus size={16} /> Tambah Soal
           </button>
         )}
@@ -518,10 +629,11 @@ export default function QuizEditorPage() {
       {questions.length === 0 ? (
         <div className="card">
           <div className="empty-state" style={{ padding: 40 }}>
+            <FileText size={48} style={{ color: 'var(--gray-400)', marginBottom: 16 }} />
             <h3>Belum ada soal</h3>
             <p>Tambahkan soal pilihan ganda atau esai.</p>
             {canEdit && (
-              <button className="btn btn-primary" onClick={() => setShowAdd(true)}>
+              <button className="btn btn-primary" onClick={() => { setError(null); setShowAdd(true); }}>
                 <Plus size={18} /> Tambah Soal
               </button>
             )}
@@ -543,8 +655,8 @@ export default function QuizEditorPage() {
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
                       <p style={{ fontWeight: 600 }}>{q.text}</p>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <span className={`badge ${q.type === 'essay' ? 'badge-purple' : 'badge-blue'}`}>
-                          {q.type === 'essay' ? 'Esai' : 'Pilihan Ganda'} • {q.points} poin
+                        <span className={`badge ${q.type === 'short_answer' ? 'badge-purple' : 'badge-blue'}`}>
+                          {q.type === 'short_answer' ? 'Jawaban Pendek' : 'Pilihan Ganda'} • {q.points} poin
                         </span>
                         {canEdit && (
                           <div style={{ display: 'flex', gap: 6 }}>
@@ -599,6 +711,14 @@ export default function QuizEditorPage() {
                         ))}
                       </div>
                     )}
+                    {q.type === 'short_answer' && q.options && (
+                      <div style={{ marginTop: 8, fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+                        <b>Jawaban Benar:</b> {q.options.map((o: any) => o.text).join(' | ')}
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', marginTop: 4 }}>
+                          Case Sensitive: {q.caseSensitive ? 'Ya' : 'Tidak'} • Space Sensitive: {q.spaceSensitive ? 'Ya' : 'Tidak'}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -616,6 +736,11 @@ export default function QuizEditorPage() {
               <button className="btn btn-ghost btn-icon" onClick={() => setShowAdd(false)}><X size={20} /></button>
             </div>
             <div className="modal-body">
+              {error && (
+                <div style={{ marginBottom: 12, padding: '10px 12px', borderRadius: 'var(--radius-md)', border: '1px solid var(--red-200)', background: 'var(--red-50)' }}>
+                  <p style={{ color: 'var(--red-700)', fontSize: '0.875rem', margin: 0 }}>{error}</p>
+                </div>
+              )}
               <div className="form-group">
                 <label className="form-label">Pertanyaan</label>
                 <textarea className="form-textarea" placeholder="Tulis pertanyaan..." value={qText} onChange={(e) => setQText(e.target.value)} rows={3} />
@@ -625,7 +750,7 @@ export default function QuizEditorPage() {
                   <label className="form-label">Tipe</label>
                   <select className="form-select" value={qType} onChange={(e) => setQType(e.target.value as any)}>
                     <option value="multiple_choice">Pilihan Ganda</option>
-                    <option value="essay">Esai</option>
+                    <option value="short_answer">Jawaban Pendek</option>
                   </select>
                 </div>
                 <div className="form-group">
@@ -653,8 +778,43 @@ export default function QuizEditorPage() {
                         value={opt.text}
                         onChange={(e) => handleOptionChange(i, 'text', e.target.value)}
                       />
+                      {qOptions.length > 2 && (
+                        <button className="btn btn-ghost btn-icon" onClick={() => setQOptions(qOptions.filter((_, idx) => idx !== i))}><Trash2 size={16} /></button>
+                      )}
                     </div>
                   ))}
+                  <button className="btn btn-ghost btn-sm" onClick={() => setQOptions([...qOptions, { text: '', isCorrect: false }])}>+ Tambah Pilihan</button>
+                </div>
+              )}
+
+              {qType === 'short_answer' && (
+                <div className="form-group">
+                  <label className="form-label">Kemungkinan Jawaban Benar</label>
+                  <p className="form-hint" style={{ marginBottom: 10 }}>Tambahkan semua variasi jawaban yang dianggap benar.</p>
+                  {qOptions.map((opt, i) => (
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                      <input
+                        className="form-input"
+                        placeholder={`Jawaban ${i + 1}`}
+                        value={opt.text}
+                        onChange={(e) => handleOptionChange(i, 'text', e.target.value)}
+                      />
+                      {qOptions.length > 1 && (
+                        <button className="btn btn-ghost btn-icon" onClick={() => setQOptions(qOptions.filter((_, idx) => idx !== i))}><Trash2 size={16} /></button>
+                      )}
+                    </div>
+                  ))}
+                  <button className="btn btn-ghost btn-sm" onClick={() => setQOptions([...qOptions, { text: '', isCorrect: true }])} style={{ marginBottom: 16 }}>+ Tambah Jawaban Benar</button>
+                  <div style={{ display: 'flex', gap: 16 }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.875rem' }}>
+                      <input type="checkbox" checked={qCaseSensitive} onChange={(e) => setQCaseSensitive(e.target.checked)} />
+                      Case Sensitive
+                    </label>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.875rem' }}>
+                      <input type="checkbox" checked={qSpaceSensitive} onChange={(e) => setQSpaceSensitive(e.target.checked)} />
+                      Space Sensitive
+                    </label>
+                  </div>
                 </div>
               )}
             </div>
@@ -675,6 +835,11 @@ export default function QuizEditorPage() {
               <button className="btn btn-ghost btn-icon" onClick={() => { setShowEdit(false); setEditingQ(null); resetForm(); }}><X size={20} /></button>
             </div>
             <div className="modal-body">
+              {error && (
+                <div style={{ marginBottom: 12, padding: '10px 12px', borderRadius: 'var(--radius-md)', border: '1px solid var(--red-200)', background: 'var(--red-50)' }}>
+                  <p style={{ color: 'var(--red-700)', fontSize: '0.875rem', margin: 0 }}>{error}</p>
+                </div>
+              )}
               <div className="form-group">
                 <label className="form-label">Pertanyaan</label>
                 <textarea className="form-textarea" placeholder="Tulis pertanyaan..." value={qText} onChange={(e) => setQText(e.target.value)} rows={3} />
@@ -684,7 +849,7 @@ export default function QuizEditorPage() {
                   <label className="form-label">Tipe</label>
                   <select className="form-select" value={qType} onChange={(e) => setQType(e.target.value as any)}>
                     <option value="multiple_choice">Pilihan Ganda</option>
-                    <option value="essay">Esai</option>
+                    <option value="short_answer">Jawaban Pendek</option>
                   </select>
                 </div>
                 <div className="form-group">
@@ -712,8 +877,43 @@ export default function QuizEditorPage() {
                         value={opt.text}
                         onChange={(e) => handleOptionChange(i, 'text', e.target.value)}
                       />
+                      {qOptions.length > 2 && (
+                        <button className="btn btn-ghost btn-icon" onClick={() => setQOptions(qOptions.filter((_, idx) => idx !== i))}><Trash2 size={16} /></button>
+                      )}
                     </div>
                   ))}
+                  <button className="btn btn-ghost btn-sm" onClick={() => setQOptions([...qOptions, { text: '', isCorrect: false }])}>+ Tambah Pilihan</button>
+                </div>
+              )}
+
+              {qType === 'short_answer' && (
+                <div className="form-group">
+                  <label className="form-label">Kemungkinan Jawaban Benar</label>
+                  <p className="form-hint" style={{ marginBottom: 10 }}>Tambahkan semua variasi jawaban yang dianggap benar.</p>
+                  {qOptions.map((opt, i) => (
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                      <input
+                        className="form-input"
+                        placeholder={`Jawaban ${i + 1}`}
+                        value={opt.text}
+                        onChange={(e) => handleOptionChange(i, 'text', e.target.value)}
+                      />
+                      {qOptions.length > 1 && (
+                        <button className="btn btn-ghost btn-icon" onClick={() => setQOptions(qOptions.filter((_, idx) => idx !== i))}><Trash2 size={16} /></button>
+                      )}
+                    </div>
+                  ))}
+                  <button className="btn btn-ghost btn-sm" onClick={() => setQOptions([...qOptions, { text: '', isCorrect: true }])} style={{ marginBottom: 16 }}>+ Tambah Jawaban Benar</button>
+                  <div style={{ display: 'flex', gap: 16 }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.875rem' }}>
+                      <input type="checkbox" checked={qCaseSensitive} onChange={(e) => setQCaseSensitive(e.target.checked)} />
+                      Case Sensitive
+                    </label>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.875rem' }}>
+                      <input type="checkbox" checked={qSpaceSensitive} onChange={(e) => setQSpaceSensitive(e.target.checked)} />
+                      Space Sensitive
+                    </label>
+                  </div>
                 </div>
               )}
             </div>
@@ -741,25 +941,6 @@ export default function QuizEditorPage() {
               <div className="form-group">
                 <label className="form-label">Deskripsi (opsional)</label>
                 <textarea className="form-textarea" value={quizDesc} onChange={(e) => setQuizDesc(e.target.value)} rows={3} />
-              </div>
-              <div className="grid-2">
-                <div className="form-group">
-                  <label className="form-label">Durasi (menit)</label>
-                  <input type="number" className="form-input" value={quizDuration} onChange={(e) => setQuizDuration(Number(e.target.value))} min={1} max={480} />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Batas Percobaan</label>
-                  <input type="number" className="form-input" value={quizAttemptLimit} onChange={(e) => setQuizAttemptLimit(Number(e.target.value))} min={1} max={10} />
-                </div>
-              </div>
-              <div className="form-group">
-                <label className="form-label">Mode</label>
-                <select className="form-select" value={quizMode} onChange={(e) => setQuizMode(e.target.value as any)}>
-                  <option value="manual">manual</option>
-                  <option value="scheduled">scheduled</option>
-                  <option value="live">live</option>
-                </select>
-                <p className="form-hint">Jika memilih <b>scheduled</b>, kamu bisa atur jadwal di bawah kartu info.</p>
               </div>
             </div>
             <div className="modal-footer">

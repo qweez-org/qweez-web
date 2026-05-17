@@ -14,6 +14,20 @@ const SocketContext = createContext<SocketContextType>({
 
 export const useSocket = () => useContext(SocketContext);
 
+function getApiUrl(): string {
+  const envUrl = import.meta.env.VITE_API_URL as string | undefined;
+  if (envUrl) return envUrl;
+  // In dev, derive from current hostname so cross-device testing works
+  // (e.g. teacher opens web at http://192.168.1.10:5173 → socket connects to http://192.168.1.10:5000)
+  if (typeof window !== 'undefined') {
+    const { protocol, hostname } = window.location;
+    if (hostname !== 'localhost') {
+      return `${protocol}//${hostname}:5000`;
+    }
+  }
+  return 'http://localhost:5000';
+}
+
 export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user } = useAuth();
   const [socket, setSocket] = useState<Socket | null>(null);
@@ -32,9 +46,10 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
 
     const token = localStorage.getItem('qweez_access_token');
-    const newSocket = io(import.meta.env.VITE_API_URL || 'http://localhost:5000', {
+    const apiUrl = getApiUrl();
+    const newSocket = io(apiUrl, {
       auth: { token },
-      transports: ['websocket'],
+      transports: ['websocket', 'polling'],
     });
 
     newSocket.on('connect', () => setConnected(true));
