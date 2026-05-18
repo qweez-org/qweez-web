@@ -5,6 +5,7 @@ import api from '../api/client';
 import { ArrowLeft, Plus, FileQuestion, Clock, ChevronRight, Trash2, Radio, Download, CalendarClock } from 'lucide-react';
 import { toErrorMessage } from '../utils/errors';
 import { formatScheduleDate, statusColors, statusLabels } from '../utils/format';
+import ConfirmModal from '../components/ConfirmModal';
 
 
 
@@ -37,6 +38,18 @@ export default function TopicDetailPage() {
   const [quizMode, setQuizMode] = useState('manual');
   const [scheduledOpen, setScheduledOpen] = useState('');
   const [scheduledClose, setScheduledClose] = useState('');
+
+  // Confirm modal state
+  const [confirmModal, setConfirmModal] = useState<{
+    open: boolean;
+    title: string;
+    message: string;
+    confirmLabel?: string;
+    variant?: 'danger' | 'warning' | 'info';
+    onConfirm: () => void;
+  }>({ open: false, title: '', message: '', onConfirm: () => {} });
+
+  const closeConfirm = () => setConfirmModal(prev => ({ ...prev, open: false }));
 
 
 
@@ -84,14 +97,23 @@ export default function TopicDetailPage() {
 
   const handleDeleteQuiz = async (quizId: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!confirm('Hapus kuis ini?')) return;
-    try {
-      setError(null);
-      await api.delete(`/quizzes/${quizId}`);
-      setQuizzes((q) => q.filter((x) => x._id !== quizId));
-    } catch (err: any) {
-      setError(toErrorMessage(err));
-    }
+    setConfirmModal({
+      open: true,
+      title: 'Hapus Kuis',
+      message: 'Hapus kuis ini? Semua soal dan hasil akan ikut terhapus.',
+      confirmLabel: 'Hapus',
+      variant: 'danger',
+      onConfirm: async () => {
+        closeConfirm();
+        try {
+          setError(null);
+          await api.delete(`/quizzes/${quizId}`);
+          setQuizzes((q) => q.filter((x) => x._id !== quizId));
+        } catch (err: any) {
+          setError(toErrorMessage(err));
+        }
+      },
+    });
   };
 
   const handleToggleStatus = async (quiz: any, e: React.MouseEvent) => {
@@ -278,6 +300,16 @@ export default function TopicDetailPage() {
           </div>
         </div>
       )}
+
+      <ConfirmModal
+        open={confirmModal.open}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        confirmLabel={confirmModal.confirmLabel}
+        variant={confirmModal.variant}
+        onConfirm={confirmModal.onConfirm}
+        onCancel={closeConfirm}
+      />
     </div>
   );
 }

@@ -4,6 +4,7 @@ import api from '../api/client';
 import { ArrowLeft, Plus, Check, X, CalendarClock, Pencil, Trash2, ArrowUp, ArrowDown, Radio, Timer, FileText, LayoutList, Repeat, CalendarDays } from 'lucide-react';
 import { toErrorMessage } from '../utils/errors';
 import { formatScheduleDate, statusColors, statusLabels } from '../utils/format';
+import ConfirmModal from '../components/ConfirmModal';
 
 export default function QuizEditorPage() {
   const { quizId } = useParams();
@@ -46,6 +47,18 @@ export default function QuizEditorPage() {
   const [showEdit, setShowEdit] = useState(false);
   const [editingQ, setEditingQ] = useState<any>(null);
 
+  // Confirm modal state
+  const [confirmModal, setConfirmModal] = useState<{
+    open: boolean;
+    title: string;
+    message: string;
+    confirmLabel?: string;
+    variant?: 'danger' | 'warning' | 'info';
+    onConfirm: () => void;
+  }>({ open: false, title: '', message: '', onConfirm: () => {} });
+
+  const closeConfirm = () => setConfirmModal(prev => ({ ...prev, open: false }));
+
   const canEdit = useMemo(() => quiz?.status === 'draft', [quiz?.status]);
 
 
@@ -86,14 +99,23 @@ export default function QuizEditorPage() {
 
 
   const handleDeleteQuiz = async () => {
-    if (!confirm('Hapus kuis ini? Semua soal dan hasil akan terhapus.')) return;
-    try {
-      setError(null);
-      await api.delete(`/quizzes/${quizId}`);
-      navigate(-1);
-    } catch (e: any) {
-      setError(toErrorMessage(e));
-    }
+    setConfirmModal({
+      open: true,
+      title: 'Hapus Kuis',
+      message: 'Hapus kuis ini? Semua soal dan hasil akan ikut terhapus. Tindakan ini tidak dapat dibatalkan.',
+      confirmLabel: 'Hapus',
+      variant: 'danger',
+      onConfirm: async () => {
+        closeConfirm();
+        try {
+          setError(null);
+          await api.delete(`/quizzes/${quizId}`);
+          navigate(-1);
+        } catch (e: any) {
+          setError(toErrorMessage(e));
+        }
+      },
+    });
   };
 
   const openEditQuiz = () => {
@@ -149,22 +171,31 @@ export default function QuizEditorPage() {
       }
     }
 
-    if (!confirm('Terbitkan kuis? Setelah diterbitkan, soal tidak dapat diubah lagi.')) return;
-    try {
-      setError(null);
-      let targetStatus = 'open';
-      if (quiz.mode === 'scheduled') targetStatus = 'scheduled';
-      if (quiz.mode === 'live') targetStatus = 'waiting';
-      
-      await api.patch(`/quizzes/${quizId}`, { status: targetStatus });
-      if (quiz.mode === 'live') {
-        navigate(`/quizzes/${quizId}/live`);
-        return;
-      }
-      fetchData();
-    } catch (e: any) {
-      setError(toErrorMessage(e));
-    }
+    setConfirmModal({
+      open: true,
+      title: 'Terbitkan Kuis',
+      message: 'Setelah diterbitkan, soal tidak dapat diubah lagi. Lanjutkan?',
+      confirmLabel: 'Terbitkan',
+      variant: 'info',
+      onConfirm: async () => {
+        closeConfirm();
+        try {
+          setError(null);
+          let targetStatus = 'open';
+          if (quiz.mode === 'scheduled') targetStatus = 'scheduled';
+          if (quiz.mode === 'live') targetStatus = 'waiting';
+          
+          await api.patch(`/quizzes/${quizId}`, { status: targetStatus });
+          if (quiz.mode === 'live') {
+            navigate(`/quizzes/${quizId}/live`);
+            return;
+          }
+          fetchData();
+        } catch (e: any) {
+          setError(toErrorMessage(e));
+        }
+      },
+    });
   };
 
   const handleToggleOpenClosed = async () => {
@@ -280,14 +311,23 @@ export default function QuizEditorPage() {
 
   const handleDeleteQuestion = async (q: any) => {
     if (!q?._id) return;
-    if (!confirm('Hapus soal ini?')) return;
-    try {
-      setError(null);
-      await api.delete(`/quizzes/${quizId}/questions/${q._id}`);
-      fetchData();
-    } catch (e: any) {
-      setError(toErrorMessage(e));
-    }
+    setConfirmModal({
+      open: true,
+      title: 'Hapus Soal',
+      message: 'Hapus soal ini? Tindakan ini tidak dapat dibatalkan.',
+      confirmLabel: 'Hapus',
+      variant: 'danger',
+      onConfirm: async () => {
+        closeConfirm();
+        try {
+          setError(null);
+          await api.delete(`/quizzes/${quizId}/questions/${q._id}`);
+          fetchData();
+        } catch (e: any) {
+          setError(toErrorMessage(e));
+        }
+      },
+    });
   };
 
   const handleMoveQuestion = async (fromIndex: number, toIndex: number) => {
@@ -320,6 +360,21 @@ export default function QuizEditorPage() {
       { text: '', isCorrect: false },
       { text: '', isCorrect: false },
     ]);
+  };
+
+  const handleTypeChange = (newType: 'multiple_choice' | 'short_answer') => {
+    if (newType === qType) return;
+    setQType(newType);
+    if (newType === 'multiple_choice') {
+      setQOptions([
+        { text: '', isCorrect: true },
+        { text: '', isCorrect: false },
+        { text: '', isCorrect: false },
+        { text: '', isCorrect: false },
+      ]);
+    } else {
+      setQOptions([{ text: '', isCorrect: true }]);
+    }
   };
 
   const handleOptionChange = (index: number, field: string, value: any) => {
@@ -427,8 +482,11 @@ export default function QuizEditorPage() {
                     <option value="live">Live Quiz</option>
                   </select>
                 </label>
-                <label style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                  <Repeat size={14} /> Maks. Percobaan: <input type="number" className="form-input" style={{ width: 50, padding: '2px 8px', height: 28 }} value={quizAttemptLimit} onChange={(e) => setQuizAttemptLimit(Number(e.target.value))} onBlur={() => handleAutoSave({ attemptLimit: quizAttemptLimit })} min={1} />
+                <label style={{ display: 'flex', alignItems: 'center', gap: 4, opacity: quiz.mode === 'live' ? 0.6 : 1 }}>
+                  <Repeat size={14} /> Maks. Percobaan: {quiz.mode === 'live'
+                    ? <span style={{ fontWeight: 600, fontSize: '0.875rem' }}>1 (Live)</span>
+                    : <input type="number" className="form-input" style={{ width: 50, padding: '2px 8px', height: 28 }} value={quizAttemptLimit} onChange={(e) => setQuizAttemptLimit(Number(e.target.value))} onBlur={() => handleAutoSave({ attemptLimit: quizAttemptLimit })} min={1} />
+                  }
                 </label>
               </>
             ) : (
@@ -609,6 +667,40 @@ export default function QuizEditorPage() {
             </span>
           </label>
         </div>
+
+        {/* Show Answer Key toggle */}
+        <div style={{ padding: '12px 24px', borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div>
+            <p style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)' }}>Izinkan Siswa Melihat Kunci Jawaban</p>
+            <p style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>Siswa dapat melihat kunci jawaban setelah semua attempt terpakai.</p>
+          </div>
+          <label className="toggle-switch" style={{ position: 'relative', display: 'inline-block', width: 44, height: 24, cursor: 'pointer' }}>
+            <input
+              type="checkbox"
+              checked={quiz.showAnswerKey || false}
+              onChange={(e) => handleAutoSave({ showAnswerKey: e.target.checked })}
+              style={{ display: 'none' }}
+            />
+            <span style={{
+              position: 'absolute', inset: 0, borderRadius: 24,
+              background: quiz.showAnswerKey ? 'var(--primary-500)' : 'var(--gray-300)',
+              transition: 'background 0.2s',
+            }}>
+              <span style={{
+                position: 'absolute', top: 2, left: quiz.showAnswerKey ? 22 : 2,
+                width: 20, height: 20, borderRadius: '50%', background: '#fff',
+                transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+              }} />
+            </span>
+          </label>
+        </div>
+
+        {/* Live quiz: single attempt notice */}
+        {quiz.mode === 'live' && (
+          <div style={{ padding: '12px 24px', borderTop: '1px solid var(--border)', background: 'var(--amber-50)', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: '0.875rem', color: 'var(--amber-700)' }}>⚡ Live quiz hanya bisa dikerjakan 1 kali (attempt limit otomatis = 1).</span>
+          </div>
+        )}
       </div>
 
       {/* Questions */}
@@ -748,7 +840,7 @@ export default function QuizEditorPage() {
               <div className="grid-2">
                 <div className="form-group">
                   <label className="form-label">Tipe</label>
-                  <select className="form-select" value={qType} onChange={(e) => setQType(e.target.value as any)}>
+                  <select className="form-select" value={qType} onChange={(e) => handleTypeChange(e.target.value as any)}>
                     <option value="multiple_choice">Pilihan Ganda</option>
                     <option value="short_answer">Jawaban Pendek</option>
                   </select>
@@ -847,7 +939,7 @@ export default function QuizEditorPage() {
               <div className="grid-2">
                 <div className="form-group">
                   <label className="form-label">Tipe</label>
-                  <select className="form-select" value={qType} onChange={(e) => setQType(e.target.value as any)}>
+                  <select className="form-select" value={qType} onChange={(e) => handleTypeChange(e.target.value as any)}>
                     <option value="multiple_choice">Pilihan Ganda</option>
                     <option value="short_answer">Jawaban Pendek</option>
                   </select>
@@ -950,6 +1042,16 @@ export default function QuizEditorPage() {
           </div>
         </div>
       )}
+
+      <ConfirmModal
+        open={confirmModal.open}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        confirmLabel={confirmModal.confirmLabel}
+        variant={confirmModal.variant}
+        onConfirm={confirmModal.onConfirm}
+        onCancel={closeConfirm}
+      />
     </div>
   );
 }

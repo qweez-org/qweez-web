@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { toErrorMessage } from '../utils/errors';
+import ConfirmModal from '../components/ConfirmModal';
 
 export default function ClassDetailPage() {
   const { classId } = useParams();
@@ -43,6 +44,18 @@ export default function ClassDetailPage() {
   // Co-teacher invite
   const [showInvite, setShowInvite] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
+
+  // Confirm modal state
+  const [confirmModal, setConfirmModal] = useState<{
+    open: boolean;
+    title: string;
+    message: string;
+    confirmLabel?: string;
+    variant?: 'danger' | 'warning' | 'info';
+    onConfirm: () => void;
+  }>({ open: false, title: '', message: '', onConfirm: () => {} });
+
+  const closeConfirm = () => setConfirmModal(prev => ({ ...prev, open: false }));
 
 
 
@@ -151,25 +164,43 @@ export default function ClassDetailPage() {
   };
 
   const handleRemoveMember = async (memberId: string) => {
-    if (!confirm('Keluarkan anggota ini?')) return;
-    try {
-      setError(null);
-      await api.delete(`/classes/members/${classId}/${memberId}`);
-      fetchMembers();
-    } catch (e: any) {
-      setError(toErrorMessage(e));
-    }
+    setConfirmModal({
+      open: true,
+      title: 'Keluarkan Anggota',
+      message: 'Keluarkan anggota ini dari kelas?',
+      confirmLabel: 'Keluarkan',
+      variant: 'danger',
+      onConfirm: async () => {
+        closeConfirm();
+        try {
+          setError(null);
+          await api.delete(`/classes/members/${classId}/${memberId}`);
+          fetchMembers();
+        } catch (e: any) {
+          setError(toErrorMessage(e));
+        }
+      },
+    });
   };
 
   const handleRemoveCoTeacher = async (teacherId: string) => {
-    if (!confirm('Hapus co-teacher ini?')) return;
-    try {
-      setError(null);
-      await api.delete(`/classes/${classId}/co-teachers/${teacherId}`);
-      fetchMembers();
-    } catch (e: any) {
-      setError(toErrorMessage(e));
-    }
+    setConfirmModal({
+      open: true,
+      title: 'Hapus Co-Teacher',
+      message: 'Hapus co-teacher ini? Mereka tidak akan bisa mengelola kelas ini lagi.',
+      confirmLabel: 'Hapus',
+      variant: 'danger',
+      onConfirm: async () => {
+        closeConfirm();
+        try {
+          setError(null);
+          await api.delete(`/classes/${classId}/co-teachers/${teacherId}`);
+          fetchMembers();
+        } catch (e: any) {
+          setError(toErrorMessage(e));
+        }
+      },
+    });
   };
 
   const handleInvite = async () => {
@@ -204,14 +235,23 @@ export default function ClassDetailPage() {
   };
 
   const handleRegenerateCode = async () => {
-    if (!confirm('Regenerate kode kelas? Kode lama tidak berlaku.')) return;
-    try {
-      setError(null);
-      await api.post(`/classes/${classId}/code`, {});
-      fetchClass();
-    } catch (e: any) {
-      setError(toErrorMessage(e));
-    }
+    setConfirmModal({
+      open: true,
+      title: 'Regenerasi Kode Kelas',
+      message: 'Regenerasi kode kelas? Kode lama tidak akan berlaku lagi dan siswa baru harus menggunakan kode baru.',
+      confirmLabel: 'Regenerasi',
+      variant: 'warning',
+      onConfirm: async () => {
+        closeConfirm();
+        try {
+          setError(null);
+          await api.post(`/classes/${classId}/code`, {});
+          fetchClass();
+        } catch (e: any) {
+          setError(toErrorMessage(e));
+        }
+      },
+    });
   };
 
   const handleDeleteClass = async () => {
@@ -256,15 +296,24 @@ export default function ClassDetailPage() {
   const handleDeleteTopic = async (topic: any, e: React.MouseEvent) => {
     e.stopPropagation();
     if (!topic?._id) return;
-    if (!confirm('Hapus topik ini? Semua kuis di dalamnya juga akan terhapus.')) return;
-    try {
-      setError(null);
-      await api.delete(`/classes/topics/${classId}/${topic._id}`);
-      fetchTopics();
-      fetchClass();
-    } catch (err: any) {
-      setError(toErrorMessage(err));
-    }
+    setConfirmModal({
+      open: true,
+      title: 'Hapus Topik',
+      message: 'Hapus topik ini? Semua kuis di dalamnya juga akan ikut terhapus. Tindakan ini tidak dapat dibatalkan.',
+      confirmLabel: 'Hapus',
+      variant: 'danger',
+      onConfirm: async () => {
+        closeConfirm();
+        try {
+          setError(null);
+          await api.delete(`/classes/topics/${classId}/${topic._id}`);
+          fetchTopics();
+          fetchClass();
+        } catch (err: any) {
+          setError(toErrorMessage(err));
+        }
+      },
+    });
   };
 
   if (loading) return <div className="loading-page"><div className="spinner" /></div>;
@@ -627,6 +676,16 @@ export default function ClassDetailPage() {
           </div>
         </div>
       )}
+
+      <ConfirmModal
+        open={confirmModal.open}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        confirmLabel={confirmModal.confirmLabel}
+        variant={confirmModal.variant}
+        onConfirm={confirmModal.onConfirm}
+        onCancel={closeConfirm}
+      />
     </div>
   );
 }

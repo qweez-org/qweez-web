@@ -4,6 +4,7 @@ import api from '../api/client';
 import { ArrowLeft, Radio, Play, X, Trophy, Users, Copy, Check, Hash, Clock } from 'lucide-react';
 import { useSocket } from '../context/SocketContext';
 import { toErrorMessage } from '../utils/errors';
+import ConfirmModal from '../components/ConfirmModal';
 
 type LiveState = 'setup' | 'lobby' | 'active' | 'finished';
 
@@ -48,6 +49,18 @@ export default function LiveQuizPage() {
   // Leaderboard
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [liveLeaderboard, setLiveLeaderboard] = useState<LeaderboardEntry[]>([]);
+
+  // Confirm modal state
+  const [confirmModal, setConfirmModal] = useState<{
+    open: boolean;
+    title: string;
+    message: string;
+    confirmLabel?: string;
+    variant?: 'danger' | 'warning' | 'info';
+    onConfirm: () => void;
+  }>({ open: false, title: '', message: '', onConfirm: () => {} });
+
+  const closeConfirm = () => setConfirmModal(prev => ({ ...prev, open: false }));
   const [answeredCounts, setAnsweredCounts] = useState<Record<string, number>>({});
   const [totalQuestions, setTotalQuestions] = useState(0);
 
@@ -194,22 +207,41 @@ export default function LiveQuizPage() {
   };
 
   const handleForceEnd = () => {
-    if (!socket || !pin || !confirm('Akhiri kuis sekarang? Semua siswa yang belum selesai akan dinilai berdasarkan jawaban yang sudah dikumpulkan.')) return;
-    socket.emit('force_end', { pin });
+    if (!socket || !pin) return;
+    setConfirmModal({
+      open: true,
+      title: 'Akhiri Kuis',
+      message: 'Akhiri kuis sekarang? Semua siswa yang belum selesai akan dinilai berdasarkan jawaban yang sudah dikumpulkan.',
+      confirmLabel: 'Akhiri',
+      variant: 'danger',
+      onConfirm: () => {
+        closeConfirm();
+        socket.emit('force_end', { pin });
+      },
+    });
   };
 
   const handleCancel = async () => {
-    if (!confirm('Batalkan live quiz?')) return;
-    try {
-      setError(null);
-      await api.post(`/quizzes/${quizId}/live/cancel`);
-      setState('setup');
-      setPin('');
-      setParticipants([]);
-      startedRef.current = false;
-    } catch (e: any) {
-      setError(toErrorMessage(e));
-    }
+    setConfirmModal({
+      open: true,
+      title: 'Batalkan Live Quiz',
+      message: 'Batalkan sesi live quiz ini? Semua peserta akan dikeluarkan.',
+      confirmLabel: 'Batalkan',
+      variant: 'danger',
+      onConfirm: async () => {
+        closeConfirm();
+        try {
+          setError(null);
+          await api.post(`/quizzes/${quizId}/live/cancel`);
+          setState('setup');
+          setPin('');
+          setParticipants([]);
+          startedRef.current = false;
+        } catch (e: any) {
+          setError(toErrorMessage(e));
+        }
+      },
+    });
   };
 
   const handleCopyPin = () => {
@@ -488,6 +520,16 @@ export default function LiveQuizPage() {
           </div>
         )}
       </div>
+
+      <ConfirmModal
+        open={confirmModal.open}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        confirmLabel={confirmModal.confirmLabel}
+        variant={confirmModal.variant}
+        onConfirm={confirmModal.onConfirm}
+        onCancel={closeConfirm}
+      />
     </div>
   );
 }
