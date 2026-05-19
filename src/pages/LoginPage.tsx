@@ -96,6 +96,9 @@ export default function LoginPage() {
         </form>
 
         <div className="auth-footer">
+          <Link to="/forgot-password" style={{ fontSize: '0.875rem', color: 'var(--primary-600)' }}>Lupa password?</Link>
+        </div>
+        <div className="auth-footer">
           Belum punya akun? <Link to="/register">Daftar</Link>
         </div>
       </div>

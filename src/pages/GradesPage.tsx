@@ -97,7 +97,7 @@ export default function GradesPage() {
     );
   }
 
-  const filteredQuizzes = quizzes.filter(q => selectedTopic === 'all' || q.topicId === selectedTopic);
+  const filteredQuizzes = quizzes.filter(q => selectedTopic === 'all' || String(q.topicId) === String(selectedTopic));
 
   const calculateAvg = (studentId: string) => {
     const scores = filteredQuizzes.map((q) => getScore(studentId, q._id));
