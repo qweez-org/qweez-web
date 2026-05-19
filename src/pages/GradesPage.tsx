@@ -35,15 +35,11 @@ export default function GradesPage() {
     const load = async () => {
       try {
         setError(null);
-        const [gradesRes, topicsRes] = await Promise.all([
-          api.get(`/grades/classes/${classId}`),
-          api.get(`/topics/${classId}`)
-        ]);
-        const data = gradesRes.data;
+        const { data } = await api.get(`/grades/classes/${classId}`);
         setGrades(data.grades || []);
         setQuizzes(data.quizzes || []);
         setMembers(data.members || []);
-        setTopics(topicsRes.data || []);
+        setTopics(data.topics || []);
       } catch (e: any) {
         setError(toErrorMessage(e));
       }
@@ -91,7 +87,15 @@ export default function GradesPage() {
     }
   };
 
-  if (loading) return <div className="loading-page"><div className="spinner" /></div>;
+  if (loading) {
+    return (
+      <div className="page-content">
+        <div className="skeleton skeleton-heading" style={{ width: 200, marginBottom: 24 }} />
+        <div className="skeleton skeleton-card" />
+        <div className="skeleton skeleton-card" />
+      </div>
+    );
+  }
 
   const filteredQuizzes = quizzes.filter(q => selectedTopic === 'all' || q.topicId === selectedTopic);
 

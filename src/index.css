@@ -189,8 +189,8 @@ h4 { font-size: 1.125rem; }
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 /* ===================================
@@ -458,7 +458,7 @@ h4 { font-size: 1.125rem; }
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
-  transition: all var(--transition);
+  transition: box-shadow var(--transition), transform var(--transition);
   overflow: hidden;
 }
 
@@ -502,7 +502,7 @@ h4 { font-size: 1.125rem; }
   display: flex;
   align-items: center;
   gap: 16px;
-  transition: all var(--transition);
+  transition: box-shadow var(--transition), transform var(--transition);
 }
 
 .stat-card:hover {
