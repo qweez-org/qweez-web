@@ -15,6 +15,7 @@ interface AuthContextType {
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (name: string, email: string, password: string) => Promise<void>;
+  updateUser: (user: User) => void;
   logout: () => void;
 }
 
@@ -74,6 +75,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
 
+  const updateUser = (updatedUser: User) => {
+    setUser(updatedUser);
+  };
+
   const logout = () => {
     api.post('/auth/logout', {}).catch(() => undefined);
     localStorage.removeItem('qweez_access_token');
@@ -82,7 +87,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, register, updateUser, logout }}>
       {children}
     </AuthContext.Provider>
   );

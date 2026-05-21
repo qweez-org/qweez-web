@@ -5,7 +5,7 @@ import { User, Mail, Save, Check, AlertCircle } from 'lucide-react';
 import { toErrorMessage } from '../utils/errors';
 
 export default function ProfilePage() {
-  const { user, logout } = useAuth();
+  const { user, updateUser, logout } = useAuth();
   const [name, setName] = useState(user?.name || '');
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -19,6 +19,7 @@ export default function ProfilePage() {
       const { data } = await api.patch('/users/me', { name: name.trim() });
       if (data.user) {
         localStorage.setItem('qweez_user', JSON.stringify(data.user));
+        updateUser(data.user);
       }
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);

@@ -870,19 +870,6 @@ h4 { font-size: 1.125rem; }
   background: var(--border);
 }
 
-.btn-google {
-  width: 100%;
-  padding: 12px;
-  background: white;
-  border: 1.5px solid var(--border);
-  color: var(--text-primary);
-  font-weight: 600;
-}
-
-.btn-google:hover {
-  background: var(--gray-50);
-  border-color: var(--gray-300);
-}
 
 .auth-footer {
   text-align: center;
@@ -1284,6 +1271,29 @@ th.gradebook-sticky-col {
 @media (max-width: 768px) {
   .sidebar {
     transform: translateX(-100%);
+    transition: transform var(--transition);
+  }
+  
+  .sidebar.open {
+    transform: translateX(0);
+  }
+
+  .sidebar-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    z-index: 95;
+    animation: fadeIn 0.2s ease;
+  }
+
+  .sidebar-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    color: var(--text-primary);
+    cursor: pointer;
   }
 
   .main-content {
@@ -1292,6 +1302,7 @@ th.gradebook-sticky-col {
 
   .topbar {
     left: 0;
+    padding: 0 16px;
   }
 
   .grid-2, .grid-3 {
@@ -1300,5 +1311,11 @@ th.gradebook-sticky-col {
 
   .page-content {
     padding: 20px 16px;
+  }
+}
+
+@media (min-width: 769px) {
+  .sidebar-toggle {
+    display: none;
   }
 }

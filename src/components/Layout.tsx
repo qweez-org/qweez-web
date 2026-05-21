@@ -1,7 +1,8 @@
+import { useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
-  LayoutDashboard, GraduationCap, Bell, User, LogOut, BookOpen
+  LayoutDashboard, GraduationCap, Bell, User, LogOut, BookOpen, Menu
 } from 'lucide-react';
 
 const navItems = [
@@ -13,6 +14,7 @@ const navItems = [
 export default function Layout({ children }: { children: React.ReactNode }) {
   const { user, logout } = useAuth();
   const location = useLocation();
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const getPageTitle = () => {
     if (location.pathname === '/') return 'Dashboard';
@@ -28,8 +30,13 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="app-layout">
+      {/* Sidebar Overlay (mobile) */}
+      {isSidebarOpen && (
+        <div className="sidebar-overlay" onClick={() => setIsSidebarOpen(false)} />
+      )}
+
       {/* Sidebar */}
-      <aside className="sidebar">
+      <aside className={`sidebar ${isSidebarOpen ? 'open' : ''}`}>
         <div className="sidebar-brand">
           <div className="sidebar-brand-icon">
             <BookOpen size={22} />
@@ -45,6 +52,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               to={item.to}
               end={item.to === '/'}
               className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}
+              onClick={() => setIsSidebarOpen(false)}
             >
               <item.icon size={20} />
               {item.label}
@@ -52,7 +60,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           ))}
 
           <div className="sidebar-section-label" style={{ marginTop: 'auto' }}>Akun</div>
-          <NavLink to="/profile" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}>
+          <NavLink to="/profile" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`} onClick={() => setIsSidebarOpen(false)}>
             <User size={20} />
             Profil
           </NavLink>
@@ -65,7 +73,12 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
       {/* Topbar */}
       <header className="topbar">
-        <h2 className="topbar-title">{getPageTitle()}</h2>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <button className="sidebar-toggle" onClick={() => setIsSidebarOpen(true)}>
+            <Menu size={24} />
+          </button>
+          <h2 className="topbar-title">{getPageTitle()}</h2>
+        </div>
         <div className="topbar-actions">
           <NavLink to="/profile" className="topbar-avatar">
             {user?.name?.charAt(0).toUpperCase()}
