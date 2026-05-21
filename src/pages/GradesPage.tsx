@@ -161,7 +161,7 @@ export default function GradesPage() {
             <select className="form-select" style={{ minWidth: 160 }} value={selectedTopic} onChange={(e) => setSelectedTopic(e.target.value)}>
               <option value="all">Semua Topik</option>
               {topics.map(t => (
-                <option key={t._id} value={t._id}>{t.title}</option>
+                <option key={t._id} value={t._id}>{t.name}</option>
               ))}
             </select>
           </div>

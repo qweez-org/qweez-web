@@ -250,48 +250,13 @@ export default function TopicDetailPage() {
                 <div className="form-group">
                   <label className="form-label">Mode</label>
                   <select className="form-select" value={quizMode} onChange={(e) => setQuizMode(e.target.value)}>
-                    <option value="manual">Manual</option>
-                    <option value="scheduled">Terjadwal</option>
+                    <option value="manual">Normal</option>
                     <option value="live">Live Quiz</option>
                   </select>
                 </div>
               </div>
 
-              {/* Schedule fields — shown when mode is 'scheduled' */}
-              {quizMode === 'scheduled' && (
-                <div style={{ background: 'var(--gray-100)', borderRadius: 'var(--radius-md)', padding: 16, marginBottom: 16 }}>
-                  <p style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <CalendarClock size={16} /> Jadwal Kuis
-                  </p>
-                  <div className="form-group" style={{ marginBottom: 12 }}>
-                    <label className="form-label">📅 Waktu Buka</label>
-                    <input
-                      type="datetime-local"
-                      className="form-input"
-                      value={scheduledOpen}
-                      onChange={(e) => setScheduledOpen(e.target.value)}
-                      min={(() => { const d = new Date(); return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16); })()}
-                      style={{ width: '100%' }}
-                    />
-                    <p className="form-hint">Kuis akan otomatis terbuka pada waktu ini.</p>
-                  </div>
-                  <div className="form-group" style={{ marginBottom: 0 }}>
-                    <label className="form-label">📅 Waktu Tutup</label>
-                    <input
-                      type="datetime-local"
-                      className="form-input"
-                      value={scheduledClose}
-                      onChange={(e) => setScheduledClose(e.target.value)}
-                      min={scheduledOpen || (() => { const d = new Date(); return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16); })()}
-                      style={{ width: '100%' }}
-                    />
-                    <p className="form-hint">Kuis akan otomatis ditutup pada waktu ini.</p>
-                  </div>
-                  {scheduledOpen && scheduledClose && new Date(scheduledClose) <= new Date(scheduledOpen) && (
-                    <p className="form-error" style={{ marginTop: 8 }}>⚠️ Waktu tutup harus setelah waktu buka!</p>
-                  )}
-                </div>
-              )}
+
             </div>
             <div className="modal-footer">
               <button className="btn btn-secondary" onClick={() => setShowCreate(false)}>Batal</button>
