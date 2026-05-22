@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import type React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../api/client';
-import { ArrowLeft, Plus, FileQuestion, Clock, ChevronRight, Trash2, Radio, Download, CalendarClock } from 'lucide-react';
+import { ArrowLeft, Plus, FileQuestion, Clock, ChevronRight, Trash2, Radio, Key, CalendarClock } from 'lucide-react';
 import { toErrorMessage } from '../utils/errors';
 import { formatScheduleDate, statusColors, statusLabels } from '../utils/format';
 import ConfirmModal from '../components/ConfirmModal';
@@ -38,8 +38,7 @@ export default function TopicDetailPage() {
   const [quizTitle, setQuizTitle] = useState('');
   const [quizDuration, setQuizDuration] = useState(30);
   const [quizMode, setQuizMode] = useState('manual');
-  const [scheduledOpen, setScheduledOpen] = useState('');
-  const [scheduledClose, setScheduledClose] = useState('');
+
 
   // Confirm modal state
   const [confirmModal, setConfirmModal] = useState<{
@@ -82,15 +81,9 @@ export default function TopicDetailPage() {
         duration: quizDuration,
         mode: quizMode,
       };
-      if (quizMode === 'scheduled') {
-        if (scheduledOpen) body.scheduledOpen = new Date(scheduledOpen).toISOString();
-        if (scheduledClose) body.scheduledClose = new Date(scheduledClose).toISOString();
-      }
       const { data } = await api.post(`/quizzes/topics/${topicId}`, body);
       setShowCreate(false);
       setQuizTitle('');
-      setScheduledOpen('');
-      setScheduledClose('');
       navigate(`/quizzes/${data.quiz._id}/edit`);
     } catch (e: any) {
       setError(toErrorMessage(e));
@@ -196,15 +189,24 @@ export default function TopicDetailPage() {
                       <Radio size={14} /> Live
                     </button>
                   )}
-                  <button className="btn btn-ghost btn-sm" title="Export hasil" onClick={(e) => {
-                    e.stopPropagation();
-                    api.get(`/export/quizzes/${quiz._id}/export/results`, { responseType: 'blob' }).then(({ data }) => {
-                      const url = window.URL.createObjectURL(new Blob([data]));
-                      const a = document.createElement('a'); a.href = url; a.download = `quiz-results-${quiz._id}.csv`; a.click();
-                      window.URL.revokeObjectURL(url);
-                    }).catch((err) => { setError(toErrorMessage(err)); });
-                  }}>
-                    <Download size={14} />
+                  <button
+                    className="btn btn-ghost btn-sm"
+                    title={quiz.showAnswerKey ? 'Kunci jawaban aktif' : 'Kunci jawaban nonaktif'}
+                    onClick={async (e) => {
+                      e.stopPropagation();
+                      const newVal = !quiz.showAnswerKey;
+                      // Optimistic update
+                      setQuizzes((prev) => prev.map((q) => q._id === quiz._id ? { ...q, showAnswerKey: newVal } : q));
+                      try {
+                        await api.patch(`/quizzes/${quiz._id}`, { showAnswerKey: newVal });
+                      } catch (err: any) {
+                        // Revert on error
+                        setQuizzes((prev) => prev.map((q) => q._id === quiz._id ? { ...q, showAnswerKey: !newVal } : q));
+                        setError(toErrorMessage(err));
+                      }
+                    }}
+                  >
+                    <Key size={14} color={quiz.showAnswerKey ? 'var(--primary-500)' : 'var(--text-tertiary)'} />
                   </button>
                   {quiz.status !== 'draft' && quiz.mode !== 'live' && (
                     <button className={`btn btn-sm ${quiz.status === 'open' ? 'btn-danger' : 'btn-primary'}`} onClick={(e) => handleToggleStatus(quiz, e)}>

@@ -182,20 +182,6 @@ export default function QuizMetaEditor(props: Props) {
         </label>
       </div>
 
-      {/* Show Answer Key toggle */}
-      <div style={{ padding: '12px 24px', borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div>
-          <p style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)' }}>Izinkan Siswa Melihat Kunci Jawaban</p>
-          <p style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>Siswa dapat melihat kunci jawaban setelah semua attempt terpakai.</p>
-        </div>
-        <label className="toggle-switch" style={{ position: 'relative', display: 'inline-block', width: 44, height: 24, cursor: 'pointer' }}>
-          <input type="checkbox" checked={quiz.showAnswerKey || false} onChange={(e) => onAutoSave({ showAnswerKey: e.target.checked })} style={{ display: 'none' }} />
-          <span style={{ position: 'absolute', inset: 0, borderRadius: 24, background: quiz.showAnswerKey ? 'var(--primary-500)' : 'var(--gray-300)', transition: 'background 0.2s' }}>
-            <span style={{ position: 'absolute', top: 2, left: quiz.showAnswerKey ? 22 : 2, width: 20, height: 20, borderRadius: '50%', background: '#fff', transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }} />
-          </span>
-        </label>
-      </div>
-
       {/* Live quiz: single attempt notice */}
       {quiz.mode === 'live' && (
         <div style={{ padding: '12px 24px', borderTop: '1px solid var(--border)', background: 'var(--amber-50)', display: 'flex', alignItems: 'center', gap: 8 }}>
