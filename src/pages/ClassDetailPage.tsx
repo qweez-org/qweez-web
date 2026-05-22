@@ -422,7 +422,7 @@ export default function ClassDetailPage() {
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {topics.map((topic, i) => (
-                <div key={topic._id} className="card card-clickable stagger-item" style={{ animationDelay: `${0.05 * i}s` }} onClick={() => navigate(`/classes/${classId}/topics/${topic._id}`)} style={{ cursor: 'pointer' }}>
+                <div key={topic._id} className="card card-clickable stagger-item" style={{ animationDelay: `${0.05 * i}s`, cursor: 'pointer' }} onClick={() => navigate(`/classes/${classId}/topics/${topic._id}`)}>
                   <div style={{ display: 'flex', alignItems: 'center', padding: '16px 20px', gap: 14 }}>
                     <div className="stat-icon green" style={{ width: 42, height: 42 }}>
                       <BookOpen size={20} />

@@ -154,7 +154,7 @@ export default function TopicDetailPage() {
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {quizzes.map((quiz, i) => (
-            <div key={quiz._id} className="card card-clickable stagger-item" style={{ animationDelay: `${0.05 * i}s` }} onClick={() => navigate(`/quizzes/${quiz._id}/edit`)} style={{ cursor: 'pointer' }}>
+            <div key={quiz._id} className="card card-clickable stagger-item" style={{ animationDelay: `${0.05 * i}s`, cursor: 'pointer' }} onClick={() => navigate(`/quizzes/${quiz._id}/edit`)}>
               <div className="quiz-card">
                 <div className="quiz-card-icon stat-icon blue">
                   <FileQuestion size={22} />
@@ -189,8 +189,16 @@ export default function TopicDetailPage() {
                       <Radio size={14} /> Live
                     </button>
                   )}
+                  {quiz.status !== 'draft' && quiz.mode !== 'live' && (
+                    <button className={`btn btn-sm ${quiz.status === 'open' ? 'btn-danger' : 'btn-primary'}`} onClick={(e) => handleToggleStatus(quiz, e)}>
+                      {quiz.status === 'open' ? 'Tutup' : 'Buka'}
+                    </button>
+                  )}
                   <button
-                    className="btn btn-ghost btn-sm"
+                    className={`btn btn-sm ${quiz.showAnswerKey ? 'btn-secondary' : 'btn-ghost'}`}
+                    style={quiz.showAnswerKey ? {
+                      boxShadow: '0 2px 8px rgba(143, 175, 154, 0.25)',
+                    } : {}}
                     title={quiz.showAnswerKey ? 'Kunci jawaban aktif' : 'Kunci jawaban nonaktif'}
                     onClick={async (e) => {
                       e.stopPropagation();
@@ -206,13 +214,8 @@ export default function TopicDetailPage() {
                       }
                     }}
                   >
-                    <Key size={14} color={quiz.showAnswerKey ? 'var(--primary-500)' : 'var(--text-tertiary)'} />
+                    <Key size={14} color={quiz.showAnswerKey ? 'var(--primary-600)' : 'var(--text-tertiary)'} />
                   </button>
-                  {quiz.status !== 'draft' && quiz.mode !== 'live' && (
-                    <button className={`btn btn-sm ${quiz.status === 'open' ? 'btn-danger' : 'btn-primary'}`} onClick={(e) => handleToggleStatus(quiz, e)}>
-                      {quiz.status === 'open' ? 'Tutup' : 'Buka'}
-                    </button>
-                  )}
                   <button className="btn btn-ghost btn-sm" onClick={(e) => handleDeleteQuiz(quiz._id, e)}>
                     <Trash2 size={14} />
                   </button>
