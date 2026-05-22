@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import api from '../api/client';
 import { Bell, Check, Clock, BookOpen, FileQuestion } from 'lucide-react';
 import { toErrorMessage } from '../utils/errors';
+import ErrorBanner from '../components/ErrorBanner';
+import Spinner from '../components/Spinner';
 
 const typeIcons: Record<string, any> = {
   join_approved: Check,
@@ -53,18 +55,11 @@ export default function NotificationsPage() {
     }
   };
 
-  if (loading) return <div className="loading-page"><div className="spinner" /></div>;
+  if (loading) return <div className="loading-page"><Spinner size={32} /></div>;
 
   return (
     <div>
-      {error && (
-        <div className="card" style={{ marginBottom: 12, border: '1px solid var(--red-200)', background: 'var(--red-50)' }}>
-          <div style={{ padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-            <p style={{ color: 'var(--red-700)', fontSize: '0.875rem', margin: 0 }}>{error}</p>
-            <button className="btn btn-ghost btn-sm" onClick={() => setError(null)}>Tutup</button>
-          </div>
-        </div>
-      )}
+      <ErrorBanner error={error} onDismiss={() => setError(null)} />
 
       <div className="page-header">
         <h1><Bell size={28} /> Notifikasi</h1>
@@ -80,13 +75,14 @@ export default function NotificationsPage() {
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {notifications.map((n) => {
+          {notifications.map((n, i) => {
             const Icon = typeIcons[n.type] || Bell;
             return (
               <div
                 key={n._id}
-                className="card"
+                className="card stagger-item"
                 style={{
+                  animationDelay: `${0.05 * i}s`,
                   opacity: n.isRead ? 0.7 : 1,
                   cursor: n.isRead ? 'default' : 'pointer',
                 }}

@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../api/client';
-import { X } from 'lucide-react';
+
 import { toErrorMessage } from '../utils/errors';
 import ConfirmModal from '../components/ConfirmModal';
+import ErrorBanner from '../components/ErrorBanner';
 import QuizPublishControls from '../components/quiz-editor/QuizPublishControls';
 import QuizMetaEditor from '../components/quiz-editor/QuizMetaEditor';
 import QuestionList from '../components/quiz-editor/QuestionList';
@@ -408,13 +409,8 @@ export default function QuizEditorPage() {
         onDeleteQuiz={handleDeleteQuiz}
       />
 
-      {error && !showAdd && !showEdit && !showEditQuiz && (
-        <div className="card" style={{ marginBottom: 12, border: '1px solid var(--red-200)', background: 'var(--red-50)' }}>
-          <div style={{ padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-            <p style={{ color: 'var(--red-700)', fontSize: '0.875rem', margin: 0 }}>{error}</p>
-            <button className="btn btn-ghost btn-sm" onClick={() => setError(null)}>Tutup</button>
-          </div>
-        </div>
+      {!showAdd && !showEdit && !showEditQuiz && (
+        <ErrorBanner error={error} onDismiss={() => setError(null)} />
       )}
 
       <QuizMetaEditor

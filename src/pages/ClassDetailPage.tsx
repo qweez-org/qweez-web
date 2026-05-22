@@ -9,6 +9,8 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { toErrorMessage } from '../utils/errors';
 import ConfirmModal from '../components/ConfirmModal';
+import ErrorBanner from '../components/ErrorBanner';
+import Spinner from '../components/Spinner';
 
 export default function ClassDetailPage() {
   const { classId } = useParams();
@@ -316,19 +318,12 @@ export default function ClassDetailPage() {
     });
   };
 
-  if (loading) return <div className="loading-page"><div className="spinner" /></div>;
+  if (loading) return <div className="loading-page"><Spinner size={32} /></div>;
   if (!classData) return <div>Kelas tidak ditemukan</div>;
 
   return (
     <div>
-      {error && (
-        <div className="card" style={{ marginBottom: 12, border: '1px solid var(--red-200)', background: 'var(--red-50)' }}>
-          <div style={{ padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-            <p style={{ color: 'var(--red-700)', fontSize: '0.875rem', margin: 0 }}>{error}</p>
-            <button className="btn btn-ghost btn-sm" onClick={() => setError(null)}>Tutup</button>
-          </div>
-        </div>
-      )}
+      <ErrorBanner error={error} onDismiss={() => setError(null)} />
 
       {/* Header */}
       <div style={{ marginBottom: 24 }}>
@@ -426,8 +421,8 @@ export default function ClassDetailPage() {
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {topics.map((topic) => (
-                <div key={topic._id} className="card card-clickable" onClick={() => navigate(`/classes/${classId}/topics/${topic._id}`)} style={{ cursor: 'pointer' }}>
+              {topics.map((topic, i) => (
+                <div key={topic._id} className="card card-clickable stagger-item" style={{ animationDelay: `${0.05 * i}s` }} onClick={() => navigate(`/classes/${classId}/topics/${topic._id}`)} style={{ cursor: 'pointer' }}>
                   <div style={{ display: 'flex', alignItems: 'center', padding: '16px 20px', gap: 14 }}>
                     <div className="stat-icon green" style={{ width: 42, height: 42 }}>
                       <BookOpen size={20} />
@@ -475,8 +470,8 @@ export default function ClassDetailPage() {
               <table className="data-table">
                 <thead><tr><th>Nama</th><th>Email</th><th>Peran</th><th></th></tr></thead>
                 <tbody>
-                  {membersForDisplay.map((m: any) => (
-                    <tr key={m._id}>
+                  {membersForDisplay.map((m: any, i: number) => (
+                    <tr key={m._id} className="stagger-item" style={{ animationDelay: `${0.05 * i}s` }}>
                       <td style={{ fontWeight: 600 }}>{(m.userId as any)?.name}{String((m.userId as any)?._id) === String(user?._id) && <span style={{ color: 'var(--text-tertiary)', fontSize: '0.8125rem', marginLeft: 6 }}>(anda)</span>}</td>
                       <td style={{ color: 'var(--text-tertiary)' }}>{(m.userId as any)?.email}</td>
                       <td>
@@ -519,8 +514,8 @@ export default function ClassDetailPage() {
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {joinRequests.map((req: any) => (
-                <div key={req._id} className="card">
+              {joinRequests.map((req: any, i: number) => (
+                <div key={req._id} className="card stagger-item" style={{ animationDelay: `${0.05 * i}s` }}>
                   <div style={{ display: 'flex', alignItems: 'center', padding: '14px 20px', gap: 14 }}>
                     <div className="topbar-avatar" style={{ width: 40, height: 40, fontSize: '0.875rem' }}>
                       {(req.userId as any)?.name?.charAt(0)}

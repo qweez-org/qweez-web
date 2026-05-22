@@ -5,6 +5,8 @@ import { ArrowLeft, Radio, Play, X, Trophy, Users, Copy, Check, Hash, Clock } fr
 import { useSocket } from '../context/SocketContext';
 import { toErrorMessage } from '../utils/errors';
 import ConfirmModal from '../components/ConfirmModal';
+import ErrorBanner from '../components/ErrorBanner';
+import Spinner from '../components/Spinner';
 
 type LiveState = 'setup' | 'lobby' | 'active' | 'finished';
 
@@ -258,19 +260,12 @@ export default function LiveQuizPage() {
   };
 
   // ── Render ─────────────────────────────────────────────────────────────────
-  if (loading) return <div className="loading-page"><div className="spinner" /></div>;
+  if (loading) return <div className="loading-page"><Spinner size={32} /></div>;
   if (!quiz) return <div>Kuis tidak ditemukan</div>;
 
   return (
     <div>
-      {error && (
-        <div className="card" style={{ marginBottom: 12, border: '1px solid var(--red-200)', background: 'var(--red-50)' }}>
-          <div style={{ padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-            <p style={{ color: 'var(--red-700)', fontSize: '0.875rem', margin: 0 }}>{error}</p>
-            <button className="btn btn-ghost btn-sm" onClick={() => setError(null)}>Tutup</button>
-          </div>
-        </div>
-      )}
+      <ErrorBanner error={error} onDismiss={() => setError(null)} />
 
       <button className="btn btn-ghost btn-sm" style={{ marginBottom: 16 }} onClick={() => navigate(-1)}>
         <ArrowLeft size={16} /> Kembali
@@ -355,7 +350,7 @@ export default function LiveQuizPage() {
 
             {/* Participant Count */}
             <div className="participant-counter">
-              <div className="participant-count">{participants.length}</div>
+              <div key={participants.length} className="participant-count number-flip">{participants.length}</div>
               <p>peserta siap</p>
             </div>
 
@@ -434,7 +429,7 @@ export default function LiveQuizPage() {
 
             {/* Progress */}
             <div className="participant-counter">
-              <div className="participant-count">{finishedCount}</div>
+              <div key={finishedCount} className="participant-count number-flip">{finishedCount}</div>
               <p>dari {participants.length} siswa sudah selesai</p>
             </div>
 
@@ -468,8 +463,8 @@ export default function LiveQuizPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {liveLeaderboard.map((entry) => (
-                      <tr key={entry.rank} className={entry.rank <= 3 ? `rank-${entry.rank}` : ''}>
+                    {liveLeaderboard.map((entry, i) => (
+                      <tr key={entry.rank} className={`stagger-item ${entry.rank <= 3 ? `rank-${entry.rank}` : ''}`} style={{ animationDelay: `${0.05 * i}s` }}>
                         <td className="rank-cell">{getMedal(entry.rank)}</td>
                         <td style={{ fontWeight: 600 }}>{entry.displayName}</td>
                         <td><span className="badge badge-green">{entry.score} pts</span></td>
@@ -504,8 +499,8 @@ export default function LiveQuizPage() {
                   <tr><th>Peringkat</th><th>Nama</th><th>Skor</th><th>Waktu</th></tr>
                 </thead>
                 <tbody>
-                  {leaderboard.map((entry) => (
-                    <tr key={entry.rank} className={entry.rank <= 3 ? `rank-${entry.rank}` : ''}>
+                  {leaderboard.map((entry, i) => (
+                    <tr key={entry.rank} className={`stagger-item ${entry.rank <= 3 ? `rank-${entry.rank}` : ''}`} style={{ animationDelay: `${0.05 * i}s` }}>
                       <td className="rank-cell">{getMedal(entry.rank)}</td>
                       <td style={{ fontWeight: 600 }}>{entry.displayName}</td>
                       <td><span className="badge badge-green">{entry.score} pts</span></td>

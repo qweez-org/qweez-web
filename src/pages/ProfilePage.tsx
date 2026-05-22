@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/client';
-import { User, Mail, Save, Check, AlertCircle } from 'lucide-react';
 import { toErrorMessage } from '../utils/errors';
+import ErrorBanner from '../components/ErrorBanner';
+import Spinner from '../components/Spinner';
 
 export default function ProfilePage() {
   const { user, updateUser, logout } = useAuth();
@@ -36,14 +37,7 @@ export default function ProfilePage() {
         <h1><User size={28} /> Profil</h1>
       </div>
 
-      {error && (
-        <div className="card" style={{ marginBottom: 12, border: '1px solid var(--red-200)', background: 'var(--red-50)' }}>
-          <div style={{ padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-            <p style={{ color: 'var(--red-700)', fontSize: '0.875rem', margin: 0 }}><AlertCircle size={16} style={{ verticalAlign: -3, marginRight: 6 }} />{error}</p>
-            <button className="btn btn-ghost btn-sm" onClick={() => setError(null)}>Tutup</button>
-          </div>
-        </div>
-      )}
+      <ErrorBanner error={error} onDismiss={() => setError(null)} />
 
       <div style={{ maxWidth: 600 }}>
         <div className="card" style={{ marginBottom: 24 }}>
@@ -96,7 +90,7 @@ export default function ProfilePage() {
 
             <div style={{ display: 'flex', gap: 12 }}>
               <button className="btn btn-primary" onClick={handleSave} disabled={saving || !name.trim()}>
-                {saved ? <><Check size={18} /> Tersimpan</> : saving ? <span className="spinner" /> : <><Save size={18} /> Simpan</>}
+                {saved ? <><Check size={18} /> Tersimpan</> : saving ? <Spinner size={18} className="spinner-white" /> : <><Save size={18} /> Simpan</>}
               </button>
             </div>
           </div>

@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { GraduationCap, Users, FileQuestion, TrendingUp, Clock, Plus, Bell } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { toErrorMessage } from '../utils/errors';
+import ErrorBanner from '../components/ErrorBanner';
 
 export default function DashboardPage() {
   const { user } = useAuth();
@@ -46,14 +47,7 @@ export default function DashboardPage() {
 
   return (
     <div>
-      {error && (
-        <div className="card" style={{ marginBottom: 12, border: '1px solid var(--red-200)', background: 'var(--red-50)' }}>
-          <div style={{ padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-            <p style={{ color: 'var(--red-700)', fontSize: '0.875rem', margin: 0 }}>{error}</p>
-            <button className="btn btn-ghost btn-sm" onClick={() => setError(null)}>Tutup</button>
-          </div>
-        </div>
-      )}
+      <ErrorBanner error={error} onDismiss={() => setError(null)} />
 
       {/* Welcome Banner */}
       <div style={{
@@ -70,19 +64,19 @@ export default function DashboardPage() {
 
       {/* Stats */}
       <div className="stats-grid">
-        <div className="stat-card">
+        <div className="stat-card stagger-item" style={{ animationDelay: '0.05s' }}>
           <div className="stat-icon green"><GraduationCap size={24} /></div>
           <div className="stat-info"><h4>{stats.classCount}</h4><p>Total Kelas</p></div>
         </div>
-        <div className="stat-card">
+        <div className="stat-card stagger-item" style={{ animationDelay: '0.1s' }}>
           <div className="stat-icon blue"><FileQuestion size={24} /></div>
           <div className="stat-info"><h4>{stats.quizCount}</h4><p>Total Kuis</p></div>
         </div>
-        <div className="stat-card">
+        <div className="stat-card stagger-item" style={{ animationDelay: '0.15s' }}>
           <div className="stat-icon purple"><Users size={24} /></div>
           <div className="stat-info"><h4>{stats.studentCount}</h4><p>Total Siswa</p></div>
         </div>
-        <div className="stat-card">
+        <div className="stat-card stagger-item" style={{ animationDelay: '0.2s' }}>
           <div className="stat-icon yellow"><TrendingUp size={24} /></div>
           <div className="stat-info"><h4>{stats.pendingCount}</h4><p>Menunggu Persetujuan</p></div>
         </div>
@@ -135,8 +129,8 @@ export default function DashboardPage() {
               <table className="data-table">
                 <thead><tr><th>Siswa</th><th>Kuis</th><th>Skor</th></tr></thead>
                 <tbody>
-                  {recentAttempts.map((a: any) => (
-                    <tr key={a._id}>
+                  {recentAttempts.map((a: any, idx: number) => (
+                    <tr key={a._id} className="stagger-item" style={{ animationDelay: `${0.1 * (idx + 1)}s` }}>
                       <td style={{ fontWeight: 600 }}>{(a.userId as any)?.name || '–'}</td>
                       <td style={{ fontSize: '0.875rem' }}>{(a.quizId as any)?.title || '–'}</td>
                       <td><span className="badge badge-green">{a.score ?? 0}/{a.totalPoints ?? 0}</span></td>

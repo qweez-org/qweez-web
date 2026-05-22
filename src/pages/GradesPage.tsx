@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import api from '../api/client';
 import { ArrowLeft, ClipboardList, Download, Filter, ArrowUpDown } from 'lucide-react';
 import { toErrorMessage } from '../utils/errors';
+import ErrorBanner from '../components/ErrorBanner';
 
 interface GradeAttempt {
   _id: string;
@@ -136,14 +137,7 @@ export default function GradesPage() {
 
   return (
     <div>
-      {error && (
-        <div className="card" style={{ marginBottom: 12, border: '1px solid var(--red-200)', background: 'var(--red-50)' }}>
-          <div style={{ padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-            <p style={{ color: 'var(--red-700)', fontSize: '0.875rem', margin: 0 }}>{error}</p>
-            <button className="btn btn-ghost btn-sm" onClick={() => setError(null)}>Tutup</button>
-          </div>
-        </div>
-      )}
+      <ErrorBanner error={error} onDismiss={() => setError(null)} />
 
       <button className="btn btn-ghost btn-sm" style={{ marginBottom: 16 }} onClick={() => navigate(`/classes/${classId}`)}>
         <ArrowLeft size={16} /> Kembali ke Kelas
@@ -208,12 +202,12 @@ export default function GradesPage() {
                 </tr>
               </thead>
               <tbody>
-                {students.map((student: any) => {
+                {students.map((student: any, i: number) => {
                   const avg = calculateAvg(student._id);
                   const scores = filteredQuizzes.map((q) => getScore(student._id, q._id));
 
                   return (
-                    <tr key={student._id}>
+                    <tr key={student._id} className="stagger-item" style={{ animationDelay: `${0.05 * i}s` }}>
                       <td className="gradebook-sticky-col">
                         <div style={{ fontWeight: 600 }}>{student.name}</div>
                         <div style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>{student.email}</div>

@@ -4,6 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import api from '../api/client';
 import { Plus, Users, BookOpen, GraduationCap, X, Copy } from 'lucide-react';
 import { toErrorMessage } from '../utils/errors';
+import ErrorBanner from '../components/ErrorBanner';
+import Spinner from '../components/Spinner';
 
 const bannerVariants = ['variant-1', 'variant-2', 'variant-3', 'variant-4', 'variant-5'];
 
@@ -57,14 +59,7 @@ export default function ClassesPage() {
 
   return (
     <div>
-      {error && (
-        <div className="card" style={{ marginBottom: 12, border: '1px solid var(--red-200)', background: 'var(--red-50)' }}>
-          <div style={{ padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-            <p style={{ color: 'var(--red-700)', fontSize: '0.875rem', margin: 0 }}>{error}</p>
-            <button className="btn btn-ghost btn-sm" onClick={() => setError(null)}>Tutup</button>
-          </div>
-        </div>
-      )}
+      <ErrorBanner error={error} onDismiss={() => setError(null)} />
 
       <div className="page-header">
         <h1><GraduationCap size={28} /> Kelas Saya</h1>
@@ -74,7 +69,7 @@ export default function ClassesPage() {
       </div>
 
       {loading ? (
-        <div className="loading-page"><div className="spinner" /></div>
+        <div className="loading-page"><Spinner size={32} /></div>
       ) : classes.length === 0 ? (
         <div className="card">
           <div className="empty-state">
@@ -89,7 +84,7 @@ export default function ClassesPage() {
       ) : (
         <div className="grid-auto">
           {classes.map((cls, i) => (
-            <div key={cls._id} className="card card-clickable class-card" onClick={() => navigate(`/classes/${cls._id}`)}>
+            <div key={cls._id} className="card card-clickable class-card stagger-item" style={{ animationDelay: `${0.05 * i}s` }} onClick={() => navigate(`/classes/${cls._id}`)}>
               <div className={`class-card-banner ${bannerVariants[i % bannerVariants.length]}`}>
                 <h3>{cls.name}</h3>
               </div>
@@ -131,7 +126,7 @@ export default function ClassesPage() {
             <div className="modal-footer">
               <button className="btn btn-secondary" onClick={() => setShowCreate(false)}>Batal</button>
               <button id="class-create-submit" className="btn btn-primary" onClick={handleCreate} disabled={creating || !newName.trim()}>
-                {creating ? <span className="spinner" /> : 'Buat Kelas'}
+                {creating ? <Spinner size={18} className="spinner-white" /> : 'Buat Kelas'}
               </button>
             </div>
           </div>
