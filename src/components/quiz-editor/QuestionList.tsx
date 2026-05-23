@@ -55,8 +55,8 @@ export default function QuestionList({ questions, canEdit, onAdd, onEdit, onDele
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
                       <p style={{ fontWeight: 600 }}>{q.text}</p>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <span className={`badge ${q.type === 'short_answer' ? 'badge-purple' : 'badge-blue'}`}>
-                          {q.type === 'short_answer' ? 'Jawaban Pendek' : 'Pilihan Ganda'} • {q.points} poin
+                        <span className={`badge ${q.type === 'short_answer' ? 'badge-purple' : q.type === 'true_false' ? 'badge-green' : 'badge-blue'}`}>
+                          {q.type === 'short_answer' ? 'Jawaban Pendek' : q.type === 'true_false' ? 'Benar/Salah' : 'Pilihan Ganda'} • {q.points} poin
                         </span>
                         {canEdit && (
                           <div style={{ display: 'flex', gap: 6 }}>
@@ -76,7 +76,7 @@ export default function QuestionList({ questions, canEdit, onAdd, onEdit, onDele
                         )}
                       </div>
                     </div>
-                    {q.type === 'multiple_choice' && q.options && (
+                    {(q.type === 'multiple_choice' || q.type === 'true_false') && q.options && (
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8, marginTop: 8 }}>
                         {q.options.map((opt: any, oi: number) => (
                           <div key={oi} style={{

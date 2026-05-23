@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { X } from 'lucide-react';
 import api from '../api/client';
 
 import { toErrorMessage } from '../utils/errors';
@@ -35,7 +36,7 @@ export default function QuizEditorPage() {
   // Add question form
   const [showAdd, setShowAdd] = useState(false);
   const [qText, setQText] = useState('');
-  const [qType, setQType] = useState<'multiple_choice' | 'short_answer'>('multiple_choice');
+  const [qType, setQType] = useState<'multiple_choice' | 'short_answer' | 'true_false'>('multiple_choice');
   const [qPoints, setQPoints] = useState(10);
   const [qCaseSensitive, setQCaseSensitive] = useState(false);
   const [qSpaceSensitive, setQSpaceSensitive] = useState(false);
@@ -217,6 +218,8 @@ export default function QuizEditorPage() {
         setError('Opsi jawaban benar tidak boleh kosong. Harap isi terlebih dahulu.');
         return;
       }
+    } else if (qType === 'true_false') {
+      // No verification needed as option texts are non-empty hardcoded Benar/Salah
     } else if (qType === 'short_answer') {
       if (!qOptions.some((o) => o.text.trim())) {
         setError('Harap isi setidaknya satu kemungkinan jawaban yang benar.');
@@ -226,7 +229,7 @@ export default function QuizEditorPage() {
     try {
       setError(null);
       const body: any = { text: qText, type: qType, points: qPoints };
-      if (qType === 'multiple_choice') {
+      if (qType === 'multiple_choice' || qType === 'true_false') {
         body.options = qOptions.filter((o) => o.text.trim());
       } else if (qType === 'short_answer') {
         body.options = qOptions.filter((o) => o.text.trim()).map(o => ({ text: o.text.trim(), isCorrect: true }));
@@ -258,6 +261,9 @@ export default function QuizEditorPage() {
         normalized[0].isCorrect = true;
       }
       setQOptions(normalized);
+    } else if (q.type === 'true_false') {
+      const opts = (q.options || []).map((o: any) => ({ text: o.text || '', isCorrect: !!o.isCorrect }));
+      setQOptions(opts);
     } else if (q.type === 'short_answer') {
       const opts = (q.options || []).map((o: any) => ({ text: o.text || '', isCorrect: true }));
       while (opts.length < 1) opts.push({ text: '', isCorrect: true });
@@ -279,6 +285,8 @@ export default function QuizEditorPage() {
         setError('Opsi jawaban benar tidak boleh kosong. Harap isi terlebih dahulu.');
         return;
       }
+    } else if (qType === 'true_false') {
+      // No verification needed as option texts are non-empty hardcoded Benar/Salah
     } else if (qType === 'short_answer') {
       if (!qOptions.some((o) => o.text.trim())) {
         setError('Harap isi setidaknya satu kemungkinan jawaban yang benar.');
@@ -288,7 +296,7 @@ export default function QuizEditorPage() {
     try {
       setError(null);
       const body: any = { text: qText, type: qType, points: qPoints };
-      if (qType === 'multiple_choice') {
+      if (qType === 'multiple_choice' || qType === 'true_false') {
         body.options = qOptions.filter((o) => o.text.trim());
       } else if (qType === 'short_answer') {
         body.options = qOptions.filter((o) => o.text.trim()).map(o => ({ text: o.text.trim(), isCorrect: true }));
@@ -360,7 +368,7 @@ export default function QuizEditorPage() {
     ]);
   };
 
-  const handleTypeChange = (newType: 'multiple_choice' | 'short_answer') => {
+  const handleTypeChange = (newType: 'multiple_choice' | 'short_answer' | 'true_false') => {
     if (newType === qType) return;
     setQType(newType);
     if (newType === 'multiple_choice') {
@@ -369,6 +377,11 @@ export default function QuizEditorPage() {
         { text: '', isCorrect: false },
         { text: '', isCorrect: false },
         { text: '', isCorrect: false },
+      ]);
+    } else if (newType === 'true_false') {
+      setQOptions([
+        { text: 'Benar', isCorrect: true },
+        { text: 'Salah', isCorrect: false },
       ]);
     } else {
       setQOptions([{ text: '', isCorrect: true }]);

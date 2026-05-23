@@ -2,7 +2,7 @@ import { Trash2, X } from 'lucide-react';
 
 export interface QuestionFormData {
   text: string;
-  type: 'multiple_choice' | 'short_answer';
+  type: 'multiple_choice' | 'short_answer' | 'true_false';
   points: number;
   caseSensitive: boolean;
   spaceSensitive: boolean;
@@ -16,7 +16,7 @@ interface Props {
   error: string | null;
   onChange: (data: QuestionFormData) => void;
   onOptionChange: (index: number, field: string, value: any) => void;
-  onTypeChange: (type: 'multiple_choice' | 'short_answer') => void;
+  onTypeChange: (type: 'multiple_choice' | 'short_answer' | 'true_false') => void;
   onClose: () => void;
   onSave: () => void;
 }
@@ -49,6 +49,7 @@ export default function QuestionEditor({ open, editingQ, data, error, onChange, 
               <select className="form-select" value={data.type} onChange={(e) => onTypeChange(e.target.value as any)}>
                 <option value="multiple_choice">Pilihan Ganda</option>
                 <option value="short_answer">Jawaban Pendek</option>
+                <option value="true_false">Benar / Salah</option>
               </select>
             </div>
             <div className="form-group">
@@ -77,6 +78,29 @@ export default function QuestionEditor({ open, editingQ, data, error, onChange, 
                 </div>
               ))}
               <button className="btn btn-ghost btn-sm" onClick={() => onChange({ ...data, options: [...data.options, { text: '', isCorrect: false }] })}>+ Tambah Pilihan</button>
+            </div>
+          )}
+
+          {data.type === 'true_false' && (
+            <div className="form-group">
+              <label className="form-label">Jawaban Benar</label>
+              <p className="form-hint" style={{ marginBottom: 10 }}>Pilih salah satu sebagai jawaban yang benar.</p>
+              <div style={{ display: 'flex', gap: 16 }}>
+                {data.options.map((opt, i) => {
+                  const isCorrect = opt.isCorrect;
+                  return (
+                    <button
+                      key={i}
+                      type="button"
+                      className={`btn ${isCorrect ? 'btn-primary' : 'btn-secondary'}`}
+                      style={{ flex: 1, padding: '16px 24px', fontSize: '1rem', height: 'auto' }}
+                      onClick={() => onOptionChange(i, 'isCorrect', true)}
+                    >
+                      {opt.text === 'Benar' ? '✓ Benar' : '✗ Salah'}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           )}
 

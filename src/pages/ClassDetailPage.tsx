@@ -61,22 +61,37 @@ export default function ClassDetailPage() {
 
 
 
+  const roleOrder: Record<string, number> = {
+    owner: 0,
+    'co-teacher': 1,
+    student: 2,
+  };
+
   const membersForDisplay = useMemo(() => {
     const owner = classData?.owner;
-    if (!owner?._id) return members;
+    let list = [...members];
+    if (owner?._id) {
+      const ownerId = String(owner._id);
+      const alreadyIncluded = members.some((m: any) => String((m.userId as any)?._id) === ownerId);
+      if (!alreadyIncluded) {
+        list = [
+          {
+            _id: `owner:${ownerId}`,
+            userId: owner,
+            role: 'owner',
+          },
+          ...members,
+        ];
+      }
+    }
 
-    const ownerId = String(owner._id);
-    const alreadyIncluded = members.some((m: any) => String((m.userId as any)?._id) === ownerId);
-    if (alreadyIncluded) return members;
-
-    return [
-      {
-        _id: `owner:${ownerId}`,
-        userId: owner,
-        role: 'owner',
-      },
-      ...members,
-    ];
+    return list.sort((a, b) => {
+      const roleDiff = (roleOrder[a.role] ?? 3) - (roleOrder[b.role] ?? 3);
+      if (roleDiff !== 0) return roleDiff;
+      const nameA = (a.userId as any)?.name ?? '';
+      const nameB = (b.userId as any)?.name ?? '';
+      return nameA.localeCompare(nameB, 'id');
+    });
   }, [classData, members]);
 
   const fetchClass = async () => {
@@ -205,17 +220,27 @@ export default function ClassDetailPage() {
     });
   };
 
-  const handleInvite = async () => {
+  const handleInvite = () => {
     if (!inviteEmail.trim()) return;
-    try {
-      setError(null);
-      await api.post(`/classes/${classId}/co-teachers`, { email: inviteEmail.trim() });
-      setInviteEmail('');
-      setShowInvite(false);
-      fetchMembers();
-    } catch (e: any) {
-      setError(toErrorMessage(e));
-    }
+    setConfirmModal({
+      open: true,
+      title: 'Undang Co-Teacher',
+      message: `Undang ${inviteEmail.trim()} sebagai co-teacher di kelas ini?`,
+      confirmLabel: 'Undang',
+      variant: 'info',
+      onConfirm: async () => {
+        closeConfirm();
+        try {
+          setError(null);
+          await api.post(`/classes/${classId}/co-teachers`, { email: inviteEmail.trim() });
+          setInviteEmail('');
+          setShowInvite(false);
+          fetchMembers();
+        } catch (e: any) {
+          setError(toErrorMessage(e));
+        }
+      },
+    });
   };
 
   const openEditClass = () => {

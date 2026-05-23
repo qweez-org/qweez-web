@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { User, Mail, Save, Check } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/client';
 import { toErrorMessage } from '../utils/errors';
