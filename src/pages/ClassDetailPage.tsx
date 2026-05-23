@@ -224,9 +224,9 @@ export default function ClassDetailPage() {
     if (!inviteEmail.trim()) return;
     setConfirmModal({
       open: true,
-      title: 'Undang Co-Teacher',
-      message: `Undang ${inviteEmail.trim()} sebagai co-teacher di kelas ini?`,
-      confirmLabel: 'Undang',
+      title: 'Kirim Undangan',
+      message: `Kirim undangan co-teacher ke ${inviteEmail.trim()}?`,
+      confirmLabel: 'Kirim',
       variant: 'info',
       onConfirm: async () => {
         closeConfirm();
@@ -649,12 +649,12 @@ export default function ClassDetailPage() {
               <div className="form-group">
                 <label className="form-label">Email Teacher</label>
                 <input className="form-input" placeholder="contoh: guru@sekolah.id" value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} />
-                <p className="form-hint">Teacher harus sudah punya akun role teacher.</p>
+                <p className="form-hint">Guru akan menerima undangan dan harus menyetujuinya sebelum mendapat akses ke kelas ini.</p>
               </div>
             </div>
             <div className="modal-footer">
               <button className="btn btn-secondary" onClick={() => setShowInvite(false)}>Batal</button>
-              <button className="btn btn-primary" onClick={handleInvite} disabled={!inviteEmail.trim()}>Undang</button>
+              <button className="btn btn-primary" onClick={handleInvite} disabled={!inviteEmail.trim()}>Kirim Undangan</button>
             </div>
           </div>
         </div>

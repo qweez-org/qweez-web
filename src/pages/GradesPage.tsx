@@ -14,6 +14,16 @@ interface GradeAttempt {
   submittedAt: string;
 }
 
+function useWindowWidth() {
+  const [width, setWidth] = useState(window.innerWidth);
+  useEffect(() => {
+    const handler = () => setWidth(window.innerWidth);
+    window.addEventListener('resize', handler);
+    return () => window.removeEventListener('resize', handler);
+  }, []);
+  return width;
+}
+
 export default function GradesPage() {
   const { classId } = useParams();
   const navigate = useNavigate();
@@ -29,6 +39,8 @@ export default function GradesPage() {
   
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const isMobile = useWindowWidth() < 768;
 
 
 
@@ -172,6 +184,56 @@ export default function GradesPage() {
             <h3>Belum ada data nilai</h3>
             <p>Nilai akan muncul setelah siswa mengerjakan kuis.</p>
           </div>
+        </div>
+      ) : isMobile ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {students.map((student) => (
+            <div key={student._id} className="card" style={{ padding: '16px 20px' }}>
+              <div style={{ fontWeight: 600, marginBottom: 4 }}>{student.name}</div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)',
+                            marginBottom: 12 }}>{student.email}</div>
+              <div style={{ overflowX: 'auto', display: 'flex', gap: 8,
+                            paddingBottom: 4 }}>
+                {filteredQuizzes.map((q) => {
+                  const s = getScore(student._id, q._id);
+                  if (!s) return (
+                    <div key={q._id} style={{ flexShrink: 0, textAlign: 'center',
+                      fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>
+                      <div style={{ fontSize: '0.6875rem', marginBottom: 2,
+                        maxWidth: 64, overflow: 'hidden', textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap' }}>{q.title}</div>
+                      <span>–</span>
+                    </div>
+                  );
+                  const pct = getPercentage(s.score, s.total);
+                  return (
+                    <div key={q._id} style={{ flexShrink: 0, textAlign: 'center' }}>
+                      <div style={{ fontSize: '0.6875rem', marginBottom: 2,
+                        maxWidth: 64, overflow: 'hidden', textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap', color: 'var(--text-tertiary)' }}>
+                        {q.title}
+                      </div>
+                      <span className={`badge ${getScoreClass(pct)}`}>{pct}%</span>
+                    </div>
+                  );
+                })}
+                {(() => {
+                  const avg = calculateAvg(student._id);
+                  return (
+                    <div style={{ flexShrink: 0, textAlign: 'center',
+                      borderLeft: '1px solid var(--border)', paddingLeft: 8 }}>
+                      <div style={{ fontSize: '0.6875rem', marginBottom: 2,
+                        color: 'var(--text-tertiary)' }}>Rata-rata</div>
+                      <span className={avg !== null
+                        ? `badge ${getScoreClass(avg)}` : 'badge badge-gray'}>
+                        {avg !== null ? `${avg}%` : '–'}
+                      </span>
+                    </div>
+                  );
+                })()}
+              </div>
+            </div>
+          ))}
         </div>
       ) : (
         <div className="card" style={{ overflow: 'hidden' }}>
