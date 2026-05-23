@@ -1107,6 +1107,31 @@ h4 { font-size: 1.125rem; }
   -webkit-overflow-scrolling: touch;
 }
 
+.gradebook-scroll-container {
+  position: relative;
+}
+
+.gradebook-scroll-container::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 30px;
+  background: linear-gradient(to left, rgba(255, 255, 255, 0.9), transparent);
+  pointer-events: none;
+  z-index: 4;
+}
+
+.gradebook-scroll-hint {
+  display: none;
+  text-align: center;
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+  margin-top: 12px;
+  font-weight: 500;
+}
+
 .gradebook-table {
   width: 100%;
   border-collapse: collapse;
@@ -1134,7 +1159,7 @@ h4 { font-size: 1.125rem; }
 .gradebook-sticky-col {
   position: sticky;
   left: 0;
-  background: inherit;
+  background: var(--surface-card);
   z-index: 3;
   text-align: left !important;
   min-width: 180px;
@@ -1327,6 +1352,21 @@ th.gradebook-sticky-col {
   .page-header > div {
     flex-wrap: wrap;
     gap: 8px;
+  }
+
+  .gradebook-scroll-hint {
+    display: block;
+  }
+
+  .gradebook-table th,
+  .gradebook-table td {
+    padding: 8px 10px;
+  }
+}
+
+@media (max-width: 640px) {
+  .quiz-col {
+    display: none !important;
   }
 }
 
