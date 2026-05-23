@@ -220,27 +220,17 @@ export default function ClassDetailPage() {
     });
   };
 
-  const handleInvite = () => {
+  const handleInvite = async () => {
     if (!inviteEmail.trim()) return;
-    setConfirmModal({
-      open: true,
-      title: 'Kirim Undangan',
-      message: `Kirim undangan co-teacher ke ${inviteEmail.trim()}?`,
-      confirmLabel: 'Kirim',
-      variant: 'info',
-      onConfirm: async () => {
-        closeConfirm();
-        try {
-          setError(null);
-          await api.post(`/classes/${classId}/co-teachers`, { email: inviteEmail.trim() });
-          setInviteEmail('');
-          setShowInvite(false);
-          fetchMembers();
-        } catch (e: any) {
-          setError(toErrorMessage(e));
-        }
-      },
-    });
+    try {
+      setError(null);
+      await api.post(`/classes/${classId}/co-teachers`, { email: inviteEmail.trim() });
+      setInviteEmail('');
+      setShowInvite(false);
+      fetchMembers();
+    } catch (e: any) {
+      setError(toErrorMessage(e));
+    }
   };
 
   const openEditClass = () => {
@@ -497,14 +487,16 @@ export default function ClassDetailPage() {
                 <tbody>
                   {membersForDisplay.map((m: any, i: number) => (
                     <tr key={m._id} className="stagger-item" style={{ animationDelay: `${0.05 * i}s` }}>
-                      <td style={{ fontWeight: 600 }}>{(m.userId as any)?.name}{String((m.userId as any)?._id) === String(user?._id) && <span style={{ color: 'var(--text-tertiary)', fontSize: '0.8125rem', marginLeft: 6 }}>(anda)</span>}</td>
-                      <td style={{ color: 'var(--text-tertiary)' }}>{(m.userId as any)?.email}</td>
+                      <td style={{ fontWeight: 600 }}>
+                        {(m.userId as any)?.name}
+                        {String((m.userId as any)?._id) === String(user?._id) && <span style={{ color: 'var(--text-tertiary)', fontSize: '0.8125rem', marginLeft: 6 }}>(anda)</span>}
+                        {m.status === 'pending' && <span style={{ color: 'var(--orange-500)', fontSize: '0.8125rem', marginLeft: 6 }}>(Menunggu Konfirmasi)</span>}
+                      </td>
+                      <td style={{ color: 'var(--text-secondary)' }}>{(m.userId as any)?.email}</td>
                       <td>
-                        {m.role === 'owner' ? (
-                          <span className="badge badge-blue">Owner</span>
-                        ) : (
-                          <span className={`badge ${m.role === 'co-teacher' ? 'badge-purple' : 'badge-green'}`}>{m.role === 'co-teacher' ? 'Co-Teacher' : 'Siswa'}</span>
-                        )}
+                        <span className={`badge ${m.role === 'owner' ? 'badge-yellow' : m.role === 'co-teacher' ? 'badge-purple' : 'badge-blue'}`}>
+                          {m.role === 'co-teacher' ? 'Co-Teacher' : m.role === 'owner' ? 'Owner' : 'Siswa'}
+                        </span>
                       </td>
                       <td>
                         {m.role === 'owner' ? null : m.role === 'co-teacher' ? (
@@ -649,12 +641,12 @@ export default function ClassDetailPage() {
               <div className="form-group">
                 <label className="form-label">Email Teacher</label>
                 <input className="form-input" placeholder="contoh: guru@sekolah.id" value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} />
-                <p className="form-hint">Guru akan menerima undangan dan harus menyetujuinya sebelum mendapat akses ke kelas ini.</p>
+                <p className="form-hint">Teacher harus sudah punya akun role teacher.</p>
               </div>
             </div>
             <div className="modal-footer">
               <button className="btn btn-secondary" onClick={() => setShowInvite(false)}>Batal</button>
-              <button className="btn btn-primary" onClick={handleInvite} disabled={!inviteEmail.trim()}>Kirim Undangan</button>
+              <button className="btn btn-primary" onClick={handleInvite} disabled={!inviteEmail.trim()}>Undang</button>
             </div>
           </div>
         </div>

@@ -1,3 +1,4 @@
+import { AlertCircle, X } from 'lucide-react';
 
 interface ErrorBannerProps {
   error: string | null;
@@ -5,15 +6,16 @@ interface ErrorBannerProps {
   marginBottom?: number;
 }
 
-export default function ErrorBanner({ error, onDismiss, marginBottom = 16 }: ErrorBannerProps) {
+export default function ErrorBanner({ error, onDismiss }: ErrorBannerProps) {
   if (!error) return null;
   
   return (
-    <div className="card" style={{ marginBottom, border: '1px solid var(--red-200)', background: 'var(--red-50)' }}>
-      <div style={{ padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-        <p style={{ color: 'var(--red-700)', fontSize: '0.875rem', margin: 0, fontWeight: 500 }}>{error}</p>
-        <button className="btn btn-ghost btn-sm" onClick={onDismiss} style={{ color: 'var(--red-700)' }}>
-          Tutup
+    <div className="toast-container">
+      <div className="toast toast-error">
+        <AlertCircle size={20} style={{ color: 'var(--red-500)', flexShrink: 0 }} />
+        <p style={{ color: 'var(--text-primary)', fontSize: '0.9375rem', margin: 0, fontWeight: 500, flex: 1 }}>{error}</p>
+        <button className="btn btn-ghost btn-icon" onClick={onDismiss} style={{ width: 32, height: 32 }}>
+          <X size={18} />
         </button>
       </div>
     </div>

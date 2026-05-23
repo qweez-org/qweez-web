@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import api from '../api/client';
-import { Bell, Check, Clock, BookOpen, FileQuestion } from 'lucide-react';
+import { Bell, Check, Clock, BookOpen, FileQuestion, UserPlus, UserCheck, UserMinus } from 'lucide-react';
 import { toErrorMessage } from '../utils/errors';
 import ErrorBanner from '../components/ErrorBanner';
 import Spinner from '../components/Spinner';
@@ -13,6 +13,9 @@ const typeIcons: Record<string, any> = {
   quiz_closed: Clock,
   quiz_result: Check,
   live_quiz: FileQuestion,
+  co_teacher_invite: UserPlus,
+  co_teacher_accepted: UserCheck,
+  co_teacher_rejected: UserMinus,
 };
 
 const typeColors: Record<string, string> = {
@@ -22,6 +25,9 @@ const typeColors: Record<string, string> = {
   quiz_closed: 'var(--red-100)',
   quiz_result: 'var(--yellow-100)',
   live_quiz: 'var(--orange-100)',
+  co_teacher_invite: 'var(--blue-100)',
+  co_teacher_accepted: 'var(--primary-100)',
+  co_teacher_rejected: 'var(--red-100)',
 };
 
 export default function NotificationsPage() {
@@ -52,6 +58,19 @@ export default function NotificationsPage() {
       setNotifications((n) => n.map((x) => x._id === id ? { ...x, isRead: true } : x));
     } catch (e: any) {
       setError(toErrorMessage(e));
+    }
+  };
+
+  const handleInviteAction = async (classId: string, action: 'accept' | 'reject', e: React.MouseEvent) => {
+    e.stopPropagation(); // prevent clicking notification
+    try {
+      setError(null);
+      await api.post(`/classes/${classId}/co-teachers/${action}`);
+      // Refetch notifications to get updated state
+      const { data } = await api.get('/notifications');
+      setNotifications(data.notifications || []);
+    } catch (err: any) {
+      setError(toErrorMessage(err));
     }
   };
 
@@ -112,6 +131,22 @@ export default function NotificationsPage() {
                     {new Date(n.createdAt).toLocaleDateString('id-ID')}
                   </span>
                 </div>
+                {n.type === 'co_teacher_invite' && !n.isRead && n.classId && (
+                  <div style={{ padding: '0 20px 14px 76px', display: 'flex', gap: 8 }}>
+                    <button 
+                      className="btn btn-primary btn-sm" 
+                      onClick={(e) => handleInviteAction(n.classId, 'accept', e)}
+                    >
+                      Terima
+                    </button>
+                    <button 
+                      className="btn btn-secondary btn-sm" 
+                      onClick={(e) => handleInviteAction(n.classId, 'reject', e)}
+                    >
+                      Tolak
+                    </button>
+                  </div>
+                )}
               </div>
             );
           })}
