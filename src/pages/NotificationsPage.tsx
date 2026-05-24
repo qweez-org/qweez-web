@@ -105,7 +105,7 @@ export default function NotificationsPage() {
                   opacity: n.isRead ? 0.7 : 1,
                   cursor: n.isRead ? 'default' : 'pointer',
                 }}
-                onClick={() => !n.isRead && markRead(n._id)}
+                onClick={() => !n.isRead && n.type !== 'co_teacher_invite' && markRead(n._id)}
               >
                 <div style={{ display: 'flex', alignItems: 'center', padding: '14px 20px', gap: 14 }}>
                   <div style={{

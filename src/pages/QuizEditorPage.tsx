@@ -201,7 +201,7 @@ export default function QuizEditorPage() {
     try {
       setError(null);
       const current = quiz?.status;
-      if (current !== 'open' && current !== 'closed') return;
+      if (current !== 'open' && current !== 'closed' && current !== 'scheduled') return;
       const next = current === 'open' ? 'closed' : 'open';
       await api.patch(`/quizzes/${quizId}`, { status: next });
       fetchData();
