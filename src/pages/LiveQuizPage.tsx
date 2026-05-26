@@ -366,7 +366,7 @@ export default function LiveQuizPage() {
             )}
 
             {/* Actions */}
-            <div style={{ display: 'flex', gap: 12, justifyContent: 'center', marginTop: 24 }}>
+            <div style={{ display: 'flex', gap: 12, justifyContent: 'center', marginTop: 24, flexWrap: 'wrap' }}>
               <button
                 className="btn btn-primary btn-lg"
                 onClick={handleStartQuiz}
@@ -441,7 +441,7 @@ export default function LiveQuizPage() {
             )}
 
             {/* Actions */}
-            <div style={{ display: 'flex', gap: 12, justifyContent: 'center', marginTop: 24 }}>
+            <div style={{ display: 'flex', gap: 12, justifyContent: 'center', marginTop: 24, flexWrap: 'wrap' }}>
               <button className="btn btn-danger" onClick={handleForceEnd}>
                 <X size={18} /> Akhiri Kuis Sekarang
               </button>
@@ -453,6 +453,7 @@ export default function LiveQuizPage() {
                 <h4 style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, fontSize: '1rem' }}>
                   <Trophy size={18} /> Leaderboard Live
                 </h4>
+                <div className="table-responsive">
                 <table className="leaderboard-table" style={{ fontSize: '0.875rem' }}>
                   <thead>
                     <tr>
@@ -475,6 +476,7 @@ export default function LiveQuizPage() {
                     ))}
                   </tbody>
                 </table>
+                </div>
               </div>
             )}
           </div>
@@ -494,6 +496,7 @@ export default function LiveQuizPage() {
                 Belum ada data...
               </p>
             ) : (
+              <div className="table-responsive">
               <table className="leaderboard-table">
                 <thead>
                   <tr><th>Peringkat</th><th>Nama</th><th>Skor</th><th>Waktu</th></tr>
@@ -511,6 +514,7 @@ export default function LiveQuizPage() {
                   ))}
                 </tbody>
               </table>
+              </div>
             )}
           </div>
         )}

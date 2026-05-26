@@ -145,7 +145,7 @@ export default function GradesPage() {
 
       <div className="page-header">
         <h1><ClipboardList size={28} /> Buku Nilai</h1>
-        <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+        <div className="grades-header-actions">
           <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.875rem' }}>
             <input type="checkbox" checked={zeroUnattended} onChange={(e) => setZeroUnattended(e.target.checked)} />
             Nolkan Kuis Tidak Diikuti

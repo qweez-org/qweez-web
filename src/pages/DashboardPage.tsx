@@ -50,15 +50,11 @@ export default function DashboardPage() {
       <ErrorBanner error={error} onDismiss={() => setError(null)} />
 
       {/* Welcome Banner */}
-      <div style={{
-        background: 'var(--primary-400)',
-        borderRadius: 'var(--radius-xl)', padding: '32px 36px', color: 'white',
-        marginBottom: 28, position: 'relative', overflow: 'hidden',
-      }}>
+      <div className="welcome-banner">
         <div style={{ position: 'absolute', right: -30, top: -30, width: 200, height: 200, background: 'rgba(255,255,255,0.1)', borderRadius: '50%' }} />
         <div style={{ position: 'absolute', right: 60, bottom: -40, width: 140, height: 140, background: 'rgba(255,255,255,0.08)', borderRadius: '50%' }} />
         <p style={{ opacity: 0.9, fontSize: '0.9375rem', marginBottom: 4 }}>{greeting},</p>
-        <h1 style={{ color: 'white', fontSize: '1.75rem', marginBottom: 6 }}>{user?.name} 👋</h1>
+        <h1 style={{ marginBottom: 6 }}>{user?.name} 👋</h1>
         <p style={{ opacity: 0.85, fontSize: '0.9375rem' }}>Kelola kelas dan kuis Anda dari sini.</p>
       </div>
 
@@ -126,18 +122,20 @@ export default function DashboardPage() {
             {recentAttempts.length === 0 ? (
               <div className="empty-state" style={{ padding: 30 }}><p>Belum ada pengerjaan.</p></div>
             ) : (
-              <table className="data-table">
-                <thead><tr><th>Siswa</th><th>Kuis</th><th>Skor</th></tr></thead>
-                <tbody>
-                  {recentAttempts.map((a: any, idx: number) => (
-                    <tr key={a._id} className="stagger-item" style={{ animationDelay: `${0.1 * (idx + 1)}s` }}>
-                      <td style={{ fontWeight: 600 }}>{(a.userId as any)?.name || '–'}</td>
-                      <td style={{ fontSize: '0.875rem' }}>{(a.quizId as any)?.title || '–'}</td>
-                      <td><span className="badge badge-green">{a.score ?? 0}/{a.totalPoints ?? 0}</span></td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              <div className="table-responsive">
+                <table className="data-table">
+                  <thead><tr><th>Siswa</th><th>Kuis</th><th>Skor</th></tr></thead>
+                  <tbody>
+                    {recentAttempts.map((a: any, idx: number) => (
+                      <tr key={a._id} className="stagger-item" style={{ animationDelay: `${0.1 * (idx + 1)}s` }}>
+                        <td style={{ fontWeight: 600 }}>{(a.userId as any)?.name || '–'}</td>
+                        <td style={{ fontSize: '0.875rem' }}>{(a.quizId as any)?.title || '–'}</td>
+                        <td><span className="badge badge-green">{a.score ?? 0}/{a.totalPoints ?? 0}</span></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             )}
           </div>
         </div>

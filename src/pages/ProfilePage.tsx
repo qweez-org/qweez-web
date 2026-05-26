@@ -48,6 +48,7 @@ export default function ProfilePage() {
             display: 'flex',
             alignItems: 'center',
             gap: 20,
+            flexWrap: 'wrap',
           }}>
             <div style={{
               width: 72, height: 72, borderRadius: 'var(--radius-full)',

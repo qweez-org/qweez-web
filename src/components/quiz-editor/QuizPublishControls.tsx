@@ -13,7 +13,7 @@ export default function QuizPublishControls({
   quiz, onNavigateBack, onNavigateLive, onToggleOpenClosed, onPublish, onDeleteQuiz,
 }: Props) {
   return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+    <div className="publish-controls-header">
       <button className="btn btn-ghost btn-sm" onClick={onNavigateBack}>
         <ArrowLeft size={16} /> Kembali
       </button>

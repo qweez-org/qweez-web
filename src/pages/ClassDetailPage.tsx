@@ -345,12 +345,12 @@ export default function ClassDetailPage() {
         <button className="btn btn-ghost btn-sm" style={{ marginBottom: 12 }} onClick={() => navigate('/classes')}>
           <ArrowLeft size={16} /> Kembali ke Kelas
         </button>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
+        <div className="class-detail-header">
           <div>
             <h1 style={{ marginBottom: 4 }}>{classData.name}</h1>
             {classData.description && <p style={{ color: 'var(--text-secondary)', fontSize: '0.9375rem' }}>{classData.description}</p>}
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div className="class-detail-actions">
             <button className="btn btn-ghost btn-sm" onClick={openEditClass} title="Edit kelas">
               <Pencil size={14} /> Edit
             </button>
@@ -438,7 +438,7 @@ export default function ClassDetailPage() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {topics.map((topic, i) => (
                 <div key={topic._id} className="card card-clickable stagger-item" style={{ animationDelay: `${0.05 * i}s`, cursor: 'pointer' }} onClick={() => navigate(`/classes/${classId}/topics/${topic._id}`)}>
-                  <div style={{ display: 'flex', alignItems: 'center', padding: '16px 20px', gap: 14 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', padding: '16px 20px', gap: 14, flexWrap: 'wrap' }}>
                     <div className="stat-icon green" style={{ width: 42, height: 42 }}>
                       <BookOpen size={20} />
                     </div>
@@ -482,37 +482,39 @@ export default function ClassDetailPage() {
                 <p>Bagikan kode kelas untuk mengundang siswa.</p>
               </div>
             ) : (
-              <table className="data-table">
-                <thead><tr><th>Nama</th><th>Email</th><th>Peran</th><th></th></tr></thead>
-                <tbody>
-                  {membersForDisplay.map((m: any, i: number) => (
-                    <tr key={m._id} className="stagger-item" style={{ animationDelay: `${0.05 * i}s` }}>
-                      <td style={{ fontWeight: 600 }}>
-                        {(m.userId as any)?.name}
-                        {String((m.userId as any)?._id) === String(user?._id) && <span style={{ color: 'var(--text-tertiary)', fontSize: '0.8125rem', marginLeft: 6 }}>(anda)</span>}
-                        {m.status === 'pending' && <span style={{ color: 'var(--orange-500)', fontSize: '0.8125rem', marginLeft: 6 }}>(Menunggu Konfirmasi)</span>}
-                      </td>
-                      <td style={{ color: 'var(--text-secondary)' }}>{(m.userId as any)?.email}</td>
-                      <td>
-                        <span className={`badge ${m.role === 'owner' ? 'badge-yellow' : m.role === 'co-teacher' ? 'badge-purple' : 'badge-blue'}`}>
-                          {m.role === 'co-teacher' ? 'Co-Teacher' : m.role === 'owner' ? 'Owner' : 'Siswa'}
-                        </span>
-                      </td>
-                      <td>
-                        {m.role === 'owner' ? null : m.role === 'co-teacher' ? (
-                          <button className="btn btn-ghost btn-sm" style={{ color: 'var(--red-400)' }} onClick={() => handleRemoveCoTeacher((m.userId as any)?._id)}>
-                            <Trash2 size={14} />
-                          </button>
-                        ) : (
-                          <button className="btn btn-ghost btn-sm" style={{ color: 'var(--red-400)' }} onClick={() => handleRemoveMember(m._id)}>
-                            <Trash2 size={14} />
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              <div className="table-responsive">
+                <table className="data-table">
+                  <thead><tr><th>Nama</th><th>Email</th><th>Peran</th><th></th></tr></thead>
+                  <tbody>
+                    {membersForDisplay.map((m: any, i: number) => (
+                      <tr key={m._id} className="stagger-item" style={{ animationDelay: `${0.05 * i}s` }}>
+                        <td style={{ fontWeight: 600 }}>
+                          {(m.userId as any)?.name}
+                          {String((m.userId as any)?._id) === String(user?._id) && <span style={{ color: 'var(--text-tertiary)', fontSize: '0.8125rem', marginLeft: 6 }}>(anda)</span>}
+                          {m.status === 'pending' && <span style={{ color: 'var(--orange-500)', fontSize: '0.8125rem', marginLeft: 6 }}>(Menunggu Konfirmasi)</span>}
+                        </td>
+                        <td style={{ color: 'var(--text-secondary)' }}>{(m.userId as any)?.email}</td>
+                        <td>
+                          <span className={`badge ${m.role === 'owner' ? 'badge-yellow' : m.role === 'co-teacher' ? 'badge-purple' : 'badge-blue'}`}>
+                            {m.role === 'co-teacher' ? 'Co-Teacher' : m.role === 'owner' ? 'Owner' : 'Siswa'}
+                          </span>
+                        </td>
+                        <td>
+                          {m.role === 'owner' ? null : m.role === 'co-teacher' ? (
+                            <button className="btn btn-ghost btn-sm" style={{ color: 'var(--red-400)' }} onClick={() => handleRemoveCoTeacher((m.userId as any)?._id)}>
+                              <Trash2 size={14} />
+                            </button>
+                          ) : (
+                            <button className="btn btn-ghost btn-sm" style={{ color: 'var(--red-400)' }} onClick={() => handleRemoveMember(m._id)}>
+                              <Trash2 size={14} />
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             )}
           </div>
         </div>
@@ -533,8 +535,8 @@ export default function ClassDetailPage() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {joinRequests.map((req: any, i: number) => (
                 <div key={req._id} className="card stagger-item" style={{ animationDelay: `${0.05 * i}s` }}>
-                  <div style={{ display: 'flex', alignItems: 'center', padding: '14px 20px', gap: 14 }}>
-                    <div className="topbar-avatar" style={{ width: 40, height: 40, fontSize: '0.875rem' }}>
+                  <div className="request-card-content">
+                    <div className="topbar-avatar" style={{ width: 40, height: 40, fontSize: '0.875rem', flexShrink: 0 }}>
                       {(req.userId as any)?.name?.charAt(0)}
                     </div>
                     <div style={{ flex: 1 }}>
@@ -543,7 +545,7 @@ export default function ClassDetailPage() {
                         {(req.userId as any)?.email} • <span className={`badge ${req.role === 'co-teacher' ? 'badge-purple' : 'badge-blue'}`}>{req.role}</span>
                       </p>
                     </div>
-                    <div style={{ display: 'flex', gap: 8 }}>
+                    <div className="request-card-actions">
                       <button className="btn btn-primary btn-sm" onClick={() => handleApprove(req._id)}>
                         <Check size={14} /> Setujui
                       </button>

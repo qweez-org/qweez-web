@@ -12,7 +12,7 @@ interface Props {
 export default function QuestionList({ questions, canEdit, onAdd, onEdit, onDelete, onMove }: Props) {
   return (
     <>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+      <div className="question-list-header">
         <div>
           <h3 style={{ marginBottom: 4 }}>Daftar Soal ({questions.length})</h3>
           {!canEdit && (
@@ -52,9 +52,9 @@ export default function QuestionList({ questions, canEdit, onAdd, onEdit, onDele
                     fontWeight: 700, fontSize: '0.8125rem', flexShrink: 0,
                   }}>{i + 1}</span>
                   <div style={{ flex: 1 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
+                    <div className="question-card-header">
                       <p style={{ fontWeight: 600 }}>{q.text}</p>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                         <span className={`badge ${q.type === 'short_answer' ? 'badge-purple' : q.type === 'true_false' ? 'badge-green' : 'badge-blue'}`}>
                           {q.type === 'short_answer' ? 'Jawaban Pendek' : q.type === 'true_false' ? 'Benar/Salah' : 'Pilihan Ganda'} • {q.points} poin
                         </span>
@@ -77,7 +77,7 @@ export default function QuestionList({ questions, canEdit, onAdd, onEdit, onDele
                       </div>
                     </div>
                     {(q.type === 'multiple_choice' || q.type === 'true_false') && q.options && (
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8, marginTop: 8 }}>
+                      <div className="question-options-grid">
                         {q.options.map((opt: any, oi: number) => (
                           <div key={oi} style={{
                             padding: '8px 12px', borderRadius: 'var(--radius-sm)', fontSize: '0.875rem',

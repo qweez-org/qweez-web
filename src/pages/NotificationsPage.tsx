@@ -107,7 +107,7 @@ export default function NotificationsPage() {
                 }}
                 onClick={() => !n.isRead && n.type !== 'co_teacher_invite' && markRead(n._id)}
               >
-                <div style={{ display: 'flex', alignItems: 'center', padding: '14px 20px', gap: 14 }}>
+                <div style={{ display: 'flex', alignItems: 'center', padding: '14px 20px', gap: 14, flexWrap: 'wrap' }}>
                   <div style={{
                     width: 42, height: 42, borderRadius: 'var(--radius-md)',
                     background: typeColors[n.type] || 'var(--gray-100)',

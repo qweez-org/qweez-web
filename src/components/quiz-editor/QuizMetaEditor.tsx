@@ -30,7 +30,7 @@ export default function QuizMetaEditor(props: Props) {
   return (
     <div className="card" style={{ marginBottom: 24 }}>
       <div style={{ padding: '24px', background: 'var(--primary-50)', borderRadius: 'var(--radius-lg) var(--radius-lg) 0 0' }}>
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
           <div>
             <h2 style={{ marginBottom: 8 }}>{quiz.title}</h2>
             {quiz.description && (
@@ -97,7 +97,7 @@ export default function QuizMetaEditor(props: Props) {
       {/* Schedule section (Only for non-live quizzes) */}
       {quiz.mode !== 'live' && (
         <div style={{ padding: '16px 24px', borderTop: '1px solid var(--border)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
             <div>
               <p style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)' }}>Jadwalkan Kuis Otomatis</p>
               <p style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>Buka dan tutup kuis secara otomatis berdasarkan waktu.</p>
@@ -141,7 +141,7 @@ export default function QuizMetaEditor(props: Props) {
       )}
 
       {/* Backtrack toggle */}
-      <div style={{ padding: '12px 24px', borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', opacity: quiz.mode === 'live' ? 0.6 : 1 }}>
+      <div style={{ padding: '12px 24px', borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', opacity: quiz.mode === 'live' ? 0.6 : 1 }}>
         <div>
           <p style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)' }}>Izinkan Kembali ke Soal Sebelumnya</p>
           <p style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>{quiz.mode === 'live' ? 'Live quiz selalu tidak bisa kembali ke soal sebelumnya.' : 'Jika dimatikan, siswa hanya bisa maju ke soal berikutnya.'}</p>
@@ -155,7 +155,7 @@ export default function QuizMetaEditor(props: Props) {
       </div>
 
       {/* Shuffle Questions toggle */}
-      <div style={{ padding: '12px 24px', borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <div style={{ padding: '12px 24px', borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
         <div>
           <p style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)' }}>Acak Urutan Soal</p>
           <p style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>Setiap siswa mendapat urutan berbeda.</p>
@@ -169,7 +169,7 @@ export default function QuizMetaEditor(props: Props) {
       </div>
 
       {/* Shuffle Options toggle */}
-      <div style={{ padding: '12px 24px', borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <div style={{ padding: '12px 24px', borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
         <div>
           <p style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)' }}>Acak Pilihan Jawaban</p>
           <p style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>Opsi pada soal pilihan ganda akan diacak.</p>
