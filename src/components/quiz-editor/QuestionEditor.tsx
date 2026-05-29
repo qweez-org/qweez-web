@@ -61,32 +61,52 @@ export default function QuestionEditor({ open, editingQ, data, error, onChange, 
           {data.type === 'multiple_choice' && (
             <div className="form-group">
               <label className="form-label">Pilihan Jawaban</label>
-              <p className="form-hint" style={{ marginBottom: 10 }}>Klik radio untuk menandai jawaban benar.</p>
-              {data.options.map((opt, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-                  <input
-                    type="radio"
-                    name="correct"
-                    checked={opt.isCorrect}
-                    onChange={() => onOptionChange(i, 'isCorrect', true)}
-                    style={{ accentColor: 'var(--primary-500)', width: 18, height: 18 }}
-                  />
-                  <input
-                    className="form-input"
-                    placeholder={`Opsi ${String.fromCharCode(65 + i)}`}
-                    value={opt.text}
-                    onChange={(e) => onOptionChange(i, 'text', e.target.value)}
-                    style={opt.isCorrect ? {
-                      borderColor: 'var(--primary-400)',
-                      backgroundColor: 'var(--primary-50)',
-                      boxShadow: '0 0 0 1px var(--primary-200)',
-                    } : undefined}
-                  />
-                  {data.options.length > 2 && (
-                    <button className="btn btn-ghost btn-icon" onClick={() => onChange({ ...data, options: data.options.filter((_, idx) => idx !== i) })}><Trash2 size={16} /></button>
-                  )}
-                </div>
-              ))}
+              <p className="form-hint" style={{ marginBottom: 10 }}>
+                Klik radio untuk menandai jawaban benar. Opsi duplikat akan digabungkan otomatis saat disimpan (jawaban benar tetap dipertahankan).
+              </p>
+              {(() => {
+                const texts = data.options.map(o => o.text.trim().toLowerCase());
+                const duplicateSet = new Set(texts.filter((t, i) => t && texts.indexOf(t) !== i));
+                
+                return data.options.map((opt, i) => {
+                  const isDuplicate = opt.text.trim() && duplicateSet.has(opt.text.trim().toLowerCase());
+                  const borderStyle = isDuplicate 
+                    ? { borderColor: 'var(--orange-400)', background: 'var(--orange-50)' } 
+                    : (opt.isCorrect ? {
+                        borderColor: 'var(--primary-400)',
+                        backgroundColor: 'var(--primary-50)',
+                        boxShadow: '0 0 0 1px var(--primary-200)',
+                      } : undefined);
+                  const tooltipText = isDuplicate 
+                    ? (opt.isCorrect 
+                        ? 'Opsi duplikat: akan digabungkan otomatis, dan status Jawaban Benar akan tetap dipertahankan.' 
+                        : 'Opsi duplikat: akan digabungkan secara otomatis saat disimpan.')
+                    : undefined;
+
+                  return (
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                      <input
+                        type="radio"
+                        name="correct"
+                        checked={opt.isCorrect}
+                        onChange={() => onOptionChange(i, 'isCorrect', true)}
+                        style={{ accentColor: 'var(--primary-500)', width: 18, height: 18 }}
+                      />
+                      <input
+                        className="form-input"
+                        placeholder={`Opsi ${String.fromCharCode(65 + i)}`}
+                        value={opt.text}
+                        onChange={(e) => onOptionChange(i, 'text', e.target.value)}
+                        style={borderStyle}
+                        title={tooltipText}
+                      />
+                      {data.options.length > 2 && (
+                        <button className="btn btn-ghost btn-icon" onClick={() => onChange({ ...data, options: data.options.filter((_, idx) => idx !== i) })}><Trash2 size={16} /></button>
+                      )}
+                    </div>
+                  );
+                });
+              })()}
               <button className="btn btn-ghost btn-sm" onClick={() => onChange({ ...data, options: [...data.options, { text: '', isCorrect: false }] })}>+ Tambah Pilihan</button>
             </div>
           )}
