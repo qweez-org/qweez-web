@@ -76,6 +76,11 @@ export default function QuestionEditor({ open, editingQ, data, error, onChange, 
                     placeholder={`Opsi ${String.fromCharCode(65 + i)}`}
                     value={opt.text}
                     onChange={(e) => onOptionChange(i, 'text', e.target.value)}
+                    style={opt.isCorrect ? {
+                      borderColor: 'var(--primary-400)',
+                      backgroundColor: 'var(--primary-50)',
+                      boxShadow: '0 0 0 1px var(--primary-200)',
+                    } : undefined}
                   />
                   {data.options.length > 2 && (
                     <button className="btn btn-ghost btn-icon" onClick={() => onChange({ ...data, options: data.options.filter((_, idx) => idx !== i) })}><Trash2 size={16} /></button>
