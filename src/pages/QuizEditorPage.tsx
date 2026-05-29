@@ -218,13 +218,6 @@ export default function QuizEditorPage() {
         setError('Opsi jawaban benar tidak boleh kosong. Harap isi terlebih dahulu.');
         return;
       }
-      // Cek duplikat opsi (case-insensitive)
-      const filledOptions = qOptions.filter((o) => o.text.trim());
-      const optionTexts = filledOptions.map((o) => o.text.trim().toLowerCase());
-      if (new Set(optionTexts).size !== optionTexts.length) {
-        setError('Pilihan jawaban tidak boleh ada yang sama persis. Harap ubah opsi yang duplikat.');
-        return;
-      }
     } else if (qType === 'true_false') {
       // No verification needed as option texts are non-empty hardcoded Benar/Salah
     } else if (qType === 'short_answer') {
@@ -237,7 +230,16 @@ export default function QuizEditorPage() {
       setError(null);
       const body: any = { text: qText, type: qType, points: qPoints };
       if (qType === 'multiple_choice' || qType === 'true_false') {
-        body.options = qOptions.filter((o) => o.text.trim());
+        // Auto-deduplicate options (case-insensitive), keep first occurrence
+        const seen = new Set<string>();
+        body.options = qOptions
+          .filter((o) => o.text.trim())
+          .filter((o) => {
+            const key = o.text.trim().toLowerCase();
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+          });
       } else if (qType === 'short_answer') {
         body.options = qOptions.filter((o) => o.text.trim()).map(o => ({ text: o.text.trim(), isCorrect: true }));
         body.caseSensitive = qCaseSensitive;
@@ -292,13 +294,6 @@ export default function QuizEditorPage() {
         setError('Opsi jawaban benar tidak boleh kosong. Harap isi terlebih dahulu.');
         return;
       }
-      // Cek duplikat opsi (case-insensitive)
-      const filledOptions = qOptions.filter((o) => o.text.trim());
-      const optionTexts = filledOptions.map((o) => o.text.trim().toLowerCase());
-      if (new Set(optionTexts).size !== optionTexts.length) {
-        setError('Pilihan jawaban tidak boleh ada yang sama persis. Harap ubah opsi yang duplikat.');
-        return;
-      }
     } else if (qType === 'true_false') {
       // No verification needed as option texts are non-empty hardcoded Benar/Salah
     } else if (qType === 'short_answer') {
@@ -311,7 +306,16 @@ export default function QuizEditorPage() {
       setError(null);
       const body: any = { text: qText, type: qType, points: qPoints };
       if (qType === 'multiple_choice' || qType === 'true_false') {
-        body.options = qOptions.filter((o) => o.text.trim());
+        // Auto-deduplicate options (case-insensitive), keep first occurrence
+        const seen = new Set<string>();
+        body.options = qOptions
+          .filter((o) => o.text.trim())
+          .filter((o) => {
+            const key = o.text.trim().toLowerCase();
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+          });
       } else if (qType === 'short_answer') {
         body.options = qOptions.filter((o) => o.text.trim()).map(o => ({ text: o.text.trim(), isCorrect: true }));
         body.caseSensitive = qCaseSensitive;
