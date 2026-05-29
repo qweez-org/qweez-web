@@ -218,6 +218,13 @@ export default function QuizEditorPage() {
         setError('Opsi jawaban benar tidak boleh kosong. Harap isi terlebih dahulu.');
         return;
       }
+      // Cek duplikat opsi (case-insensitive)
+      const filledOptions = qOptions.filter((o) => o.text.trim());
+      const optionTexts = filledOptions.map((o) => o.text.trim().toLowerCase());
+      if (new Set(optionTexts).size !== optionTexts.length) {
+        setError('Pilihan jawaban tidak boleh ada yang sama persis. Harap ubah opsi yang duplikat.');
+        return;
+      }
     } else if (qType === 'true_false') {
       // No verification needed as option texts are non-empty hardcoded Benar/Salah
     } else if (qType === 'short_answer') {
@@ -283,6 +290,13 @@ export default function QuizEditorPage() {
       const correctOpt = qOptions.find((o) => o.isCorrect);
       if (correctOpt && !correctOpt.text.trim()) {
         setError('Opsi jawaban benar tidak boleh kosong. Harap isi terlebih dahulu.');
+        return;
+      }
+      // Cek duplikat opsi (case-insensitive)
+      const filledOptions = qOptions.filter((o) => o.text.trim());
+      const optionTexts = filledOptions.map((o) => o.text.trim().toLowerCase());
+      if (new Set(optionTexts).size !== optionTexts.length) {
+        setError('Pilihan jawaban tidak boleh ada yang sama persis. Harap ubah opsi yang duplikat.');
         return;
       }
     } else if (qType === 'true_false') {

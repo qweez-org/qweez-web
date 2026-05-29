@@ -62,21 +62,36 @@ export default function QuestionEditor({ open, editingQ, data, error, onChange, 
             <div className="form-group">
               <label className="form-label">Pilihan Jawaban</label>
               <p className="form-hint" style={{ marginBottom: 10 }}>Klik radio untuk menandai jawaban benar.</p>
-              {data.options.map((opt, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-                  <input
-                    type="radio"
-                    name="correct"
-                    checked={opt.isCorrect}
-                    onChange={() => onOptionChange(i, 'isCorrect', true)}
-                    style={{ accentColor: 'var(--primary-500)', width: 18, height: 18 }}
-                  />
-                  <input className="form-input" placeholder={`Opsi ${String.fromCharCode(65 + i)}`} value={opt.text} onChange={(e) => onOptionChange(i, 'text', e.target.value)} />
-                  {data.options.length > 2 && (
-                    <button className="btn btn-ghost btn-icon" onClick={() => onChange({ ...data, options: data.options.filter((_, idx) => idx !== i) })}><Trash2 size={16} /></button>
-                  )}
-                </div>
-              ))}
+              {(() => {
+                // Hitung teks duplikat (case-insensitive) untuk highlight border merah
+                const texts = data.options.map(o => o.text.trim().toLowerCase());
+                const duplicateSet = new Set(texts.filter((t, i) => t && texts.indexOf(t) !== i));
+                return data.options.map((opt, i) => {
+                  const isDuplicate = opt.text.trim() && duplicateSet.has(opt.text.trim().toLowerCase());
+                  return (
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                      <input
+                        type="radio"
+                        name="correct"
+                        checked={opt.isCorrect}
+                        onChange={() => onOptionChange(i, 'isCorrect', true)}
+                        style={{ accentColor: 'var(--primary-500)', width: 18, height: 18 }}
+                      />
+                      <input
+                        className="form-input"
+                        placeholder={`Opsi ${String.fromCharCode(65 + i)}`}
+                        value={opt.text}
+                        onChange={(e) => onOptionChange(i, 'text', e.target.value)}
+                        style={isDuplicate ? { borderColor: 'var(--red-400)', background: 'var(--red-50)' } : undefined}
+                        title={isDuplicate ? 'Pilihan ini duplikat dengan opsi lain' : undefined}
+                      />
+                      {data.options.length > 2 && (
+                        <button className="btn btn-ghost btn-icon" onClick={() => onChange({ ...data, options: data.options.filter((_, idx) => idx !== i) })}><Trash2 size={16} /></button>
+                      )}
+                    </div>
+                  );
+                });
+              })()}
               <button className="btn btn-ghost btn-sm" onClick={() => onChange({ ...data, options: [...data.options, { text: '', isCorrect: false }] })}>+ Tambah Pilihan</button>
             </div>
           )}
