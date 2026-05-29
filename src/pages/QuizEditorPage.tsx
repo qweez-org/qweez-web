@@ -229,17 +229,26 @@ export default function QuizEditorPage() {
     try {
       setError(null);
       const body: any = { text: qText, type: qType, points: qPoints };
-      if (qType === 'multiple_choice' || qType === 'true_false') {
-        // Auto-deduplicate options (case-insensitive), keep first occurrence
-        const seen = new Set<string>();
-        body.options = qOptions
-          .filter((o) => o.text.trim())
-          .filter((o) => {
-            const key = o.text.trim().toLowerCase();
-            if (seen.has(key)) return false;
-            seen.add(key);
-            return true;
-          });
+      if (qType === 'multiple_choice') {
+        // Auto-deduplicate options (case-insensitive), keep first occurrence.
+        // If any duplicate is marked as correct, the kept occurrence will be marked as correct.
+        const uniqueOptionsMap = new Map<string, { text: string; isCorrect: boolean }>();
+        for (const o of qOptions) {
+          const trimmedText = o.text.trim();
+          if (!trimmedText) continue;
+          const key = trimmedText.toLowerCase();
+          const existing = uniqueOptionsMap.get(key);
+          if (existing) {
+            if (o.isCorrect) {
+              existing.isCorrect = true;
+            }
+          } else {
+            uniqueOptionsMap.set(key, { text: trimmedText, isCorrect: o.isCorrect });
+          }
+        }
+        body.options = Array.from(uniqueOptionsMap.values());
+      } else if (qType === 'true_false') {
+        body.options = qOptions.filter((o) => o.text.trim());
       } else if (qType === 'short_answer') {
         body.options = qOptions.filter((o) => o.text.trim()).map(o => ({ text: o.text.trim(), isCorrect: true }));
         body.caseSensitive = qCaseSensitive;
@@ -305,17 +314,26 @@ export default function QuizEditorPage() {
     try {
       setError(null);
       const body: any = { text: qText, type: qType, points: qPoints };
-      if (qType === 'multiple_choice' || qType === 'true_false') {
-        // Auto-deduplicate options (case-insensitive), keep first occurrence
-        const seen = new Set<string>();
-        body.options = qOptions
-          .filter((o) => o.text.trim())
-          .filter((o) => {
-            const key = o.text.trim().toLowerCase();
-            if (seen.has(key)) return false;
-            seen.add(key);
-            return true;
-          });
+      if (qType === 'multiple_choice') {
+        // Auto-deduplicate options (case-insensitive), keep first occurrence.
+        // If any duplicate is marked as correct, the kept occurrence will be marked as correct.
+        const uniqueOptionsMap = new Map<string, { text: string; isCorrect: boolean }>();
+        for (const o of qOptions) {
+          const trimmedText = o.text.trim();
+          if (!trimmedText) continue;
+          const key = trimmedText.toLowerCase();
+          const existing = uniqueOptionsMap.get(key);
+          if (existing) {
+            if (o.isCorrect) {
+              existing.isCorrect = true;
+            }
+          } else {
+            uniqueOptionsMap.set(key, { text: trimmedText, isCorrect: o.isCorrect });
+          }
+        }
+        body.options = Array.from(uniqueOptionsMap.values());
+      } else if (qType === 'true_false') {
+        body.options = qOptions.filter((o) => o.text.trim());
       } else if (qType === 'short_answer') {
         body.options = qOptions.filter((o) => o.text.trim()).map(o => ({ text: o.text.trim(), isCorrect: true }));
         body.caseSensitive = qCaseSensitive;
