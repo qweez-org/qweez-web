@@ -63,6 +63,9 @@ export default function ResetPasswordPage() {
           </div>
         ) : (
           <>
+            <div style={{ background: '#fff7ed', border: '1px solid #fdba74', borderRadius: 'var(--radius-md)', padding: '12px 16px', marginBottom: 20, fontSize: '0.875rem', color: '#9a3412' }}>
+              Fitur reset password masih belum aktif penuh di deployment saat ini. Jika proses ini gagal, gunakan bantuan admin atau pengelola sistem.
+            </div>
             {error && (
               <div style={{ background: 'var(--red-50)', border: '1px solid var(--red-100)', borderRadius: 'var(--radius-md)', padding: '12px 16px', marginBottom: 20, display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.875rem', color: 'var(--red-500)' }}>
                 <AlertCircle size={18} /> {error}
