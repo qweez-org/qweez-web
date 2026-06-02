@@ -23,6 +23,16 @@ interface LeaderboardEntry {
   totalTime: number;
 }
 
+const toSafeNumber = (value: unknown, fallback = 0) => {
+  const num = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(num) ? num : fallback;
+};
+
+const formatClock = (seconds: unknown) => {
+  const safeSeconds = Math.max(0, Math.floor(toSafeNumber(seconds, 0)));
+  return `${Math.floor(safeSeconds / 60).toString().padStart(2, '0')}:${(safeSeconds % 60).toString().padStart(2, '0')}`;
+};
+
 export default function LiveQuizPage() {
   const { quizId } = useParams();
   const navigate = useNavigate();
@@ -136,7 +146,7 @@ export default function LiveQuizPage() {
     const onQuizStarted = (data: any) => {
       setState('active');
       setFinishedCount(0);
-      const dur = data.totalDurationSec || 0;
+      const dur = Math.max(0, Math.floor(toSafeNumber(data?.totalDurationSec, 0)));
       setTotalDuration(dur);
       elapsedRef.current = 0;
       setElapsedSec(0);
@@ -262,6 +272,12 @@ export default function LiveQuizPage() {
   // ── Render ─────────────────────────────────────────────────────────────────
   if (loading) return <div className="loading-page"><Spinner size={32} /></div>;
   if (!quiz) return <div>Kuis tidak ditemukan</div>;
+
+  const safeElapsedSec = Math.max(0, Math.floor(toSafeNumber(elapsedSec, 0)));
+  const safeTotalDuration = Math.max(0, Math.floor(toSafeNumber(totalDuration, 0)));
+  const progressWidth = safeTotalDuration > 0
+    ? Math.min(100, (safeElapsedSec / safeTotalDuration) * 100)
+    : 0;
 
   return (
     <div>
@@ -403,12 +419,12 @@ export default function LiveQuizPage() {
                 fontSize: '3rem',
                 fontWeight: 900,
                 fontFamily: 'monospace',
-                color: elapsedSec >= totalDuration ? 'var(--red-500)' : 'var(--primary-600)',
+                color: safeElapsedSec >= safeTotalDuration && safeTotalDuration > 0 ? 'var(--red-500)' : 'var(--primary-600)',
                 letterSpacing: '0.1em',
                 lineHeight: 1,
                 marginBottom: 12,
               }}>
-                {Math.floor(elapsedSec / 60).toString().padStart(2, '0')}:{(elapsedSec % 60).toString().padStart(2, '0')} / {Math.floor(totalDuration / 60).toString().padStart(2, '0')}:{(totalDuration % 60).toString().padStart(2, '0')}
+                {formatClock(safeElapsedSec)} / {formatClock(safeTotalDuration)}
               </div>
               <div style={{
                 width: '100%',
@@ -418,9 +434,9 @@ export default function LiveQuizPage() {
                 overflow: 'hidden',
               }}>
                 <div style={{
-                  width: `${Math.min(100, (elapsedSec / Math.max(1, totalDuration)) * 100)}%`,
+                  width: `${progressWidth}%`,
                   height: '100%',
-                  background: elapsedSec >= totalDuration ? 'var(--red-500)' : 'var(--primary-500)',
+                  background: safeElapsedSec >= safeTotalDuration && safeTotalDuration > 0 ? 'var(--red-500)' : 'var(--primary-500)',
                   borderRadius: 4,
                   transition: 'width 1s linear',
                 }} />
